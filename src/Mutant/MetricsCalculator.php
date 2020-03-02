@@ -97,6 +97,8 @@ class MetricsCalculator
      */
     private $notCoveredMutantExecutionResults = [];
 
+    private $fh;
+
     /**
      * Build a metric calculator with a sub-set of mutators
      *
@@ -119,30 +121,49 @@ class MetricsCalculator
     {
         ++$this->totalMutantsCount;
 
+        $save = true;
+
+        // fwrite($this->getFh(), base64_encode(serialize($executionResult))."\n");
+
         switch ($executionResult->getProcessResultCode()) {
             case MutantProcess::CODE_KILLED:
                 $this->killedCount++;
-                $this->killedMutantExecutionResults[] = $executionResult;
+
+                if ($save) {
+                    $this->killedMutantExecutionResults[] = $executionResult;
+                }
 
                 break;
             case MutantProcess::CODE_NOT_COVERED:
                 $this->notCoveredByTestsCount++;
-                $this->notCoveredMutantExecutionResults[] = $executionResult;
+
+                if ($save) {
+                    $this->notCoveredMutantExecutionResults[] = $executionResult;
+                }
 
                 break;
             case MutantProcess::CODE_ESCAPED:
                 $this->escapedCount++;
-                $this->escapedMutantExecutionResults[] = $executionResult;
+
+                if ($save) {
+                    $this->escapedMutantExecutionResults[] = $executionResult;
+                }
 
                 break;
             case MutantProcess::CODE_TIMED_OUT:
                 $this->timedOutCount++;
-                $this->timedOutMutantExecutionResults[] = $executionResult;
+
+                if ($save) {
+                    $this->timedOutMutantExecutionResults[] = $executionResult;
+                }
 
                 break;
             case MutantProcess::CODE_ERROR:
                 $this->errorCount++;
-                $this->errorMutantExecutionResults[] = $executionResult;
+
+                if ($save) {
+                    $this->errorMutantExecutionResults[] = $executionResult;
+                }
 
                 break;
         }
@@ -272,5 +293,14 @@ class MetricsCalculator
     public function getErrorMutantExecutionResults(): array
     {
         return $this->errorMutantExecutionResults;
+    }
+
+    private function getFh()
+    {
+        if (!$this->fh) {
+            $this->fh = fopen('/tmp/mutations_' . getmypid() . '.txt', 'w');
+        }
+
+        return $this->fh;
     }
 }

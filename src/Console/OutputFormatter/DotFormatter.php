@@ -51,13 +51,22 @@ final class DotFormatter extends AbstractOutputFormatter
 
     private $output;
 
+    private $memusage;
+
+    private $time;
+
+    private $firstAdvance = true;
+
     public function __construct(OutputInterface $output)
     {
         $this->output = $output;
+        $this->memusage = memory_get_usage();
     }
 
     public function start(int $mutationCount): void
     {
+        $this->time = microtime(true);
+
         parent::start($mutationCount);
 
         $this->output->writeln([
@@ -73,6 +82,13 @@ final class DotFormatter extends AbstractOutputFormatter
 
     public function advance(MutantExecutionResult $executionResult, int $mutationCount): void
     {
+        if ($this->firstAdvance) {
+            $this->firstAdvance = false;
+            $time = microtime(true) - $this->time;
+            echo "Time to first mutant: $time seconds\n\n";
+            // exit();
+        }
+
         parent::advance($executionResult, $mutationCount);
 
         switch ($executionResult->getProcessResultCode()) {
@@ -108,7 +124,12 @@ final class DotFormatter extends AbstractOutputFormatter
 
         if ($lastDot || $endOfRow) {
             if ($mutationCount === 0) {
-                $this->output->write(sprintf('   (%5d)', $this->callsCount)); // 5 because folks with over 10k mutations have more important problems
+                $newUsage = memory_get_usage();
+                $diff = $this->memusage - $newUsage;
+                $this->memusage = $newUsage;
+
+                $this->output->write(sprintf('   (%5d) %10d %10d Kb max %10d Kb cur', $this->callsCount, $diff >> 10, memory_get_peak_usage() >> 10, $newUsage >> 10));
+            // $this->output->write(sprintf('   (%5d)', $this->callsCount)); // 5 because folks with over 10k mutations have more important problems
             } else {
                 $length = strlen((string) $mutationCount);
                 $format = sprintf('   (%%%dd / %%%dd)', $length, $length);

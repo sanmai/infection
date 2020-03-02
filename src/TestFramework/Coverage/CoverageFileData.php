@@ -35,47 +35,9 @@ declare(strict_types=1);
 
 namespace Infection\TestFramework\Coverage;
 
-use Infection\AbstractTestFramework\Coverage\CoverageLineData;
-
 /**
  * @internal
- *
- * ```
- * 'byMethod' => [
- *      'mutate' => MethodLocationData::['startLine' => 12, 'endLine' => 16],
- *      ...
- * ],
- * 'byLine' => [
- *     22 => [
- *         CoverageLineData::[
- *             'testMethod' => '\A\B\C::test_it_works',
- *             'testFilePath' => '/path/to/A/B/C.php',
- *             'time' => 0.34325,
- *         ],
- *         ...
- *      ]
- *  ]
- * ```
  */
-final class CoverageFileData
+interface CoverageFileData
 {
-    /**
-     * @var array<int, array<int, CoverageLineData>>
-     */
-    public $byLine = [];
-
-    /**
-     * @var array<string, MethodLocationData>
-     */
-    public $byMethod = [];
-
-    /**
-     * @param array<int, array<int, CoverageLineData>> $byLine
-     * @param array<string, MethodLocationData> $byMethod
-     */
-    public function __construct(array $byLine = [], array $byMethod = [])
-    {
-        $this->byLine = $byLine;
-        $this->byMethod = $byMethod;
-    }
 }

@@ -84,14 +84,14 @@ class Configuration
     private $minCoveredMsi;
 
     /**
-     * @param string[] $sourceDirectories
+     * @param iterable|string[] $sourceDirectories
      * @param SplFileInfo[] $sourceFiles
      * @param array<string, Mutator> $mutators
      */
     public function __construct(
         int $timeout,
         array $sourceDirectories,
-        array $sourceFiles,
+        iterable $sourceFiles,
         Logs $logs,
         string $logVerbosity,
         string $tmpDir,
@@ -161,9 +161,9 @@ class Configuration
     }
 
     /**
-     * @return SplFileInfo[]
+     * @return iterable|SplFileInfo[]
      */
-    public function getSourceFiles(): array
+    public function getSourceFiles(): iterable
     {
         return $this->sourceFiles;
     }

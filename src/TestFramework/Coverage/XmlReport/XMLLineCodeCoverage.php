@@ -36,11 +36,12 @@ declare(strict_types=1);
 namespace Infection\TestFramework\Coverage\XmlReport;
 
 use function array_key_exists;
+use ArrayAccess;
 use function count;
 use Generator;
 use Infection\AbstractTestFramework\Coverage\CoverageLineData;
+use Infection\TestFramework\Coverage\ConcreteCoverageFileData;
 use Infection\TestFramework\Coverage\CoverageDoesNotExistException;
-use Infection\TestFramework\Coverage\CoverageFileData;
 use Infection\TestFramework\Coverage\LineCodeCoverage;
 use Infection\TestFramework\Coverage\NodeLineRangeData;
 use function range;
@@ -51,7 +52,7 @@ use function range;
 final class XMLLineCodeCoverage implements LineCodeCoverage
 {
     /**
-     * @var array<string, CoverageFileData>|null
+     * @var array<string, ConcreteCoverageFileData>|null
      */
     private $coverage;
 
@@ -119,22 +120,22 @@ final class XMLLineCodeCoverage implements LineCodeCoverage
     /**
      * @throws CoverageDoesNotExistException
      *
-     * @return CoverageLineData[]
+     * @return iterable|CoverageLineData[]
      */
-    private function getTestsForExecutedMethodOnLine(string $filePath, int $line): array
+    private function getTestsForExecutedMethodOnLine(string $filePath, int $line): iterable
     {
         $coverage = $this->getCoverage();
 
         if (!array_key_exists($filePath, $coverage)) {
-            return [];
+            return;
         }
 
-        $fileLinesCoverageData = [];
+        //  echo "\nCoverage requested $filePath\n";
 
-        /** @var CoverageFileData $fileCoverage */
+        /** @var ConcreteCoverageFileData $fileCoverage */
         $fileCoverage = $coverage[$filePath];
 
-        foreach ($fileCoverage->byMethod as $method => $coverageMethodData) {
+        foreach ($fileCoverage->byMethod as $coverageMethodData) {
             if ($line >= $coverageMethodData->startLine && $line <= $coverageMethodData->endLine) {
                 /** @var int[] $allLines */
                 $allLines = range($coverageMethodData->startLine, $coverageMethodData->endLine);
@@ -142,7 +143,7 @@ final class XMLLineCodeCoverage implements LineCodeCoverage
                 foreach ($allLines as $lineInExecutedMethod) {
                     if (array_key_exists($lineInExecutedMethod, $fileCoverage->byLine)) {
                         foreach ($fileCoverage->byLine[$lineInExecutedMethod] as $coverageLineData) {
-                            $fileLinesCoverageData[] = $coverageLineData;
+                            yield $coverageLineData;
                         }
                     }
                 }
@@ -150,16 +151,14 @@ final class XMLLineCodeCoverage implements LineCodeCoverage
                 break;
             }
         }
-
-        return $fileLinesCoverageData;
     }
 
     /**
      * @throws CoverageDoesNotExistException
      *
-     * @return array<string, CoverageFileData>
+     * @return array<string, ConcreteCoverageFileData>
      */
-    private function getCoverage(): array
+    private function getCoverage(): ArrayAccess
     {
         return $this->coverage ?? $this->coverage = $this->coverageFactory->createCoverage();
     }

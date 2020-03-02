@@ -36,17 +36,22 @@ declare(strict_types=1);
 namespace Infection\TestFramework\PhpUnit\Coverage;
 
 use function array_filter;
+use ArrayAccess;
+use ArrayIterator;
 use DOMDocument;
 use DOMElement;
 use DOMNodeList;
 use DOMXPath;
 use function implode;
 use Infection\AbstractTestFramework\Coverage\CoverageLineData;
+use Infection\TestFramework\Coverage\ConcreteCoverageFileData;
 use Infection\TestFramework\Coverage\CoverageDoesNotExistException;
-use Infection\TestFramework\Coverage\CoverageFileData;
+use Infection\TestFramework\Coverage\LazyCoverageFileData;
 use Infection\TestFramework\Coverage\MethodLocationData;
 use Infection\TestFramework\SafeQuery;
+use IteratorAggregate;
 use function realpath as native_realpath;
+use RuntimeException;
 use function Safe\file_get_contents;
 use function Safe\preg_replace;
 use function Safe\realpath;
@@ -78,9 +83,9 @@ class IndexXmlCoverageParser
      * @throws NoLineExecuted
      * @throws CoverageDoesNotExistException
      *
-     * @return CoverageFileData[]
+     * @return ConcreteCoverageFileData[]
      */
-    public function parse(string $coverageXmlContent): array
+    public function parse(string $coverageXmlContent): ArrayAccess
     {
         $xPath = self::createXPath($coverageXmlContent);
 
@@ -94,11 +99,71 @@ class IndexXmlCoverageParser
 
         foreach ($nodes as $node) {
             $relativeFilePath = $node->getAttribute('href');
-
             $this->processCoverageFile($relativeFilePath, $projectSource, $data);
         }
 
-        return $data;
+        return new class($data) implements ArrayAccess, IteratorAggregate {
+            /** @var LazyCoverageFileData[] */
+            private $container = [];
+
+            private $removed = [];
+
+            private $lastSeen;
+
+            public function __construct(array $data)
+            {
+                $this->container = $data;
+            }
+
+            public function offsetSet($offset, $value): void
+            {
+                throw new RuntimeException('denied');
+            }
+
+            public function offsetExists($offset)
+            {
+                return isset($this->container[$offset]);
+            }
+
+            public function offsetUnset($offset): void
+            {
+                throw new RuntimeException('denied');
+            }
+
+            public function offsetGet($offset)
+            {
+                if (!array_key_exists($offset, $this->container)) {
+                    if (array_key_exists($offset, $this->removed)) {
+                        throw new RuntimeException("Trying to get coverage for $offset");
+                    }
+
+                    return null;
+                }
+
+                $item = $this->container[$offset];
+                /** @var $item LazyCoverageFileData */
+                if ($item->lazyStill()) {
+                    return $item;
+                }
+
+                if ($this->lastSeen === null || $offset === $this->lastSeen) {
+                    $this->lastSeen = $offset;
+
+                    return $item;
+                }
+
+                $this->removed[$this->lastSeen] = true;
+                unset($this->container[$this->lastSeen]);
+                $this->lastSeen = $offset;
+
+                return $this->container[$offset];
+            }
+
+            public function getIterator()
+            {
+                return new ArrayIterator($this->container);
+            }
+        };
     }
 
     private static function createXPath(string $coverageContent): DOMXPath
@@ -139,7 +204,7 @@ class IndexXmlCoverageParser
     }
 
     /**
-     * @param array<string, CoverageFileData> $data
+     * @param array<string, ConcreteCoverageFileData> $data
      *
      * @throws CoverageDoesNotExistException
      */
@@ -148,55 +213,74 @@ class IndexXmlCoverageParser
         string $projectSource,
         array &$data
     ): void {
+        //$time = microtime(true);
+        // <file name="BaseCommand.php" path="/Command">
+        preg_match('/<file.*?name="([^"]+)".*?path="([^"]+)"/', file_get_contents($this->coverageDir . '/' . $relativeCoverageFilePath), $match);
+        $sourceFilePath = self::retrieveSourceFilePathForFilename($match[1], $match[2], $relativeCoverageFilePath, $projectSource);
+        //var_dump(microtime(true) - $time);
+
+        /*
+        $time = microtime(true);
         $xPath = self::createXPath(file_get_contents(
             realpath($this->coverageDir . '/' . $relativeCoverageFilePath)
         ));
-
         $sourceFilePath = self::retrieveSourceFilePath($xPath, $relativeCoverageFilePath, $projectSource);
+        var_dump(microtime(true) - $time);
+        */
+        /*
+        float(0.0011301040649414)
+        float(0.031888961791992)
+        */
 
-        $linesNode = self::safeQuery($xPath, '/phpunit/file/totals/lines')[0];
+        //var_dump($sourceFilePath2, $sourceFilePath);  die();
 
-        $percentage = $linesNode->getAttribute('percent');
+        $data[$sourceFilePath] = new LazyCoverageFileData(function () use ($relativeCoverageFilePath): ConcreteCoverageFileData {
+            // echo $this->coverageDir . '/' . $relativeCoverageFilePath. "\n";
 
-        if (substr($percentage, -1) === '%') {
-            // In PHPUnit <6 the percentage value would take the form "0.00%" in _some_ cases.
-            // For example could find both with percentage and without in
-            // https://github.com/maks-rafalko/tactician-domain-events/tree/1eb23434d3a833dedb6180ead75ff983ef09a2e9
-            $percentage = substr($percentage, 0, -1);
-        }
+            $xPath = self::createXPath(file_get_contents(
+                realpath($this->coverageDir . '/' . $relativeCoverageFilePath)
+            ));
 
-        if ($percentage === '') {
-            $percentage = .0;
-        } else {
-            Assert::numeric($percentage);
+            $linesNode = self::safeQuery($xPath, '/phpunit/file/totals/lines')[0];
 
-            $percentage = (float) $percentage;
-        }
+            $percentage = $linesNode->getAttribute('percent');
 
-        if ($percentage === .0) {
-            $data[$sourceFilePath] = new CoverageFileData();
+            if (substr($percentage, -1) === '%') {
+                // In PHPUnit <6 the percentage value would take the form "0.00%" in _some_ cases.
+                // For example could find both with percentage and without in
+                // https://github.com/maks-rafalko/tactician-domain-events/tree/1eb23434d3a833dedb6180ead75ff983ef09a2e9
+                $percentage = substr($percentage, 0, -1);
+            }
 
-            return;
-        }
+            if ($percentage === '') {
+                $percentage = .0;
+            } else {
+                Assert::numeric($percentage);
 
-        $coveredLineNodes = self::safeQuery($xPath, '/phpunit/file/coverage/line');
+                $percentage = (float) $percentage;
+            }
 
-        if ($coveredLineNodes->length === 0) {
-            $data[$sourceFilePath] = new CoverageFileData();
+            if ($percentage === .0) {
+                return new ConcreteCoverageFileData();
+            }
 
-            return;
-        }
+            $coveredLineNodes = self::safeQuery($xPath, '/phpunit/file/coverage/line');
 
-        $coveredMethodNodes = self::safeQuery($xPath, '/phpunit/file/class/method');
+            if ($coveredLineNodes->length === 0) {
+                return new ConcreteCoverageFileData();
+            }
 
-        if ($coveredMethodNodes->length === 0) {
-            $coveredMethodNodes = self::safeQuery($xPath, '/phpunit/file/trait/method');
-        }
+            $coveredMethodNodes = self::safeQuery($xPath, '/phpunit/file/class/method');
 
-        $data[$sourceFilePath] = new CoverageFileData(
-            self::collectCoveredLinesData($coveredLineNodes),
-            self::collectMethodsCoverageData($coveredMethodNodes)
-        );
+            if ($coveredMethodNodes->length === 0) {
+                $coveredMethodNodes = self::safeQuery($xPath, '/phpunit/file/trait/method');
+            }
+
+            return new ConcreteCoverageFileData(
+                self::collectCoveredLinesData($coveredLineNodes),
+                self::collectMethodsCoverageData($coveredMethodNodes)
+            );
+        });
     }
 
     /**
@@ -226,6 +310,39 @@ class IndexXmlCoverageParser
             '/',
             array_filter([$projectSource, trim($relativeFilePath, '/'), $fileName])
         );
+
+        $realPath = native_realpath($path);
+
+        if ($realPath === false) {
+            throw CoverageDoesNotExistException::forFileAtPath($fileName, $path);
+        }
+
+        return $realPath;
+    }
+
+    /**
+     * @throws CoverageDoesNotExistException
+     */
+    private static function retrieveSourceFilePathForFilename(
+        string $fileName,
+        string $relativeFilePath,
+        string $relativeCoverageFilePath,
+        string $projectSource
+        ): string {
+        if ($relativeFilePath === '') {
+            // The relative path is not present for old versions of PHPUnit. As a result we parse
+            // the relative path from the source file path and the XML coverage file
+            $relativeFilePath = str_replace(
+                    sprintf('%s.xml', $fileName),
+                    '',
+                    $relativeCoverageFilePath
+                    );
+        }
+
+        $path = implode(
+                '/',
+                array_filter([$projectSource, trim($relativeFilePath, '/'), $fileName])
+                );
 
         $realPath = native_realpath($path);
 

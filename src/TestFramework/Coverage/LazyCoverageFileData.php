@@ -33,33 +33,43 @@
 
 declare(strict_types=1);
 
-namespace Infection\Tests\TestFramework\Coverage;
+namespace Infection\TestFramework\Coverage;
 
-use Infection\AbstractTestFramework\Coverage\CoverageLineData;
-use Infection\TestFramework\Coverage\ConcreteCoverageFileData;
-use Infection\TestFramework\Coverage\MethodLocationData;
-use PHPUnit\Framework\TestCase;
+use Closure;
 
-final class CoverageFileDataTest extends TestCase
+/**
+ * @internal
+ */
+final class LazyCoverageFileData implements CoverageFileData
 {
-    public function test_it_has_default_values(): void
-    {
-        $coverageFileData = new ConcreteCoverageFileData();
+    private $coverageFileData;
+    private $producers = [];
 
-        $this->assertSame([], $coverageFileData->byMethod);
-        $this->assertSame([], $coverageFileData->byLine);
+    public function __construct(Closure $producer)
+    {
+        $this->producers[] = $producer;
     }
 
-    public function test_it_creates_self_object_with_named_constructor(): void
+    public function addProducer(Closure $producer): void
     {
-        $pathToTest = '/path/to/Test.php';
+        $this->producers[] = $producer;
+    }
 
-        $coverageFileData = new ConcreteCoverageFileData(
-            [1 => [CoverageLineData::withTestMethod($pathToTest)]],
-            ['method' => new MethodLocationData(1, 3)]
-        );
+    public function lazyStill(): bool
+    {
+        return $this->coverageFileData === null;
+    }
 
-        $this->assertSame($pathToTest, $coverageFileData->byLine[1][0]->testMethod);
-        $this->assertSame(1, $coverageFileData->byMethod['method']->startLine);
+    public function &__get(string $property): array
+    {
+        if (!$this->coverageFileData) {
+            // throw new \RuntimeException("PRODUCE\n");
+
+            foreach ($this->producers as $producer) {
+                $this->coverageFileData = ($producer)($this->coverageFileData);
+            }
+        }
+
+        return $this->coverageFileData->$property;
     }
 }

@@ -36,8 +36,8 @@ declare(strict_types=1);
 namespace Infection\Tests\TestFramework\Coverage\XmlReport;
 
 use Infection\AbstractTestFramework\Coverage\CoverageLineData;
+use Infection\TestFramework\Coverage\ConcreteCoverageFileData;
 use Infection\TestFramework\Coverage\CoverageDoesNotExistException;
-use Infection\TestFramework\Coverage\CoverageFileData;
 use Infection\TestFramework\Coverage\MethodLocationData;
 use Infection\TestFramework\Coverage\NodeLineRangeData;
 use Infection\TestFramework\Coverage\XmlReport\PhpUnitXmlCoverageFactory;
@@ -275,7 +275,7 @@ final class XMLLineCodeCoverageTest extends TestCase
     private function getParsedCodeCoverageData(): array
     {
         return [
-            '/path/to/acme/Foo.php' => new CoverageFileData(
+            '/path/to/acme/Foo.php' => new ConcreteCoverageFileData(
                 [
                     26 => [
                         CoverageLineData::with(

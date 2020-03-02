@@ -35,14 +35,17 @@ declare(strict_types=1);
 
 namespace Infection\TestFramework\Coverage\XmlReport;
 
+use ArrayAccess;
 use function dirname;
 use function explode;
 use function file_exists;
 use Infection\AbstractTestFramework\Coverage\CoverageLineData;
+use Infection\TestFramework\Coverage\ConcreteCoverageFileData;
 use Infection\TestFramework\Coverage\CoverageDoesNotExistException;
-use Infection\TestFramework\Coverage\CoverageFileData;
+use Infection\TestFramework\Coverage\LazyCoverageFileData;
 use Infection\TestFramework\PhpUnit\Coverage\IndexXmlCoverageParser;
 use function Safe\file_get_contents;
+use Webmozart\Assert\Assert;
 
 /**
  * @internal
@@ -75,9 +78,9 @@ class PhpUnitXmlCoverageFactory
     /**
      * @throws CoverageDoesNotExistException
      *
-     * @return array<string, CoverageFileData>
+     * @return array<string, ConcreteCoverageFileData>
      */
-    public function createCoverage(): array
+    public function createCoverage(): ArrayAccess
     {
         $coverageIndexFilePath = $this->coverageDir . '/' . self::COVERAGE_INDEX_FILE_NAME;
 
@@ -99,19 +102,29 @@ class PhpUnitXmlCoverageFactory
     }
 
     /**
-     * @param CoverageFileData[] $coverage
+     * @param ConcreteCoverageFileData[] $coverage
      */
-    private function addTestExecutionInfo(array $coverage): void
+    private function addTestExecutionInfo(iterable $coverage): void
     {
         if ($this->testFileDataProvider === null) {
             return;
         }
 
-        foreach ($coverage as $sourceFilePath => $fileCoverageData) {
+        $producer = function (ConcreteCoverageFileData $fileCoverageData): ConcreteCoverageFileData {
             foreach ($fileCoverageData->byLine as $line => $linesCoverageData) {
                 foreach ($linesCoverageData as $test) {
                     self::updateTestExecutionInfo($test, $this->testFileDataProvider);
                 }
+            }
+
+            return $fileCoverageData;
+        };
+
+        foreach ($coverage as $sourceFilePath => $fileCoverageData) {
+            if ($fileCoverageData instanceof LazyCoverageFileData) {
+                $fileCoverageData->addProducer($producer);
+            } else {
+                $producer($fileCoverageData);
             }
         }
     }
@@ -123,6 +136,7 @@ class PhpUnitXmlCoverageFactory
         $class = explode(':', $test->testMethod, 2)[0];
 
         $testFileData = $testFileDataProvider->getTestFileInfo($class);
+        Assert::notNull($testFileData->path);
 
         $test->testFilePath = $testFileData->path;
         $test->time = $testFileData->time;

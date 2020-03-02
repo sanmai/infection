@@ -148,7 +148,7 @@ class ParallelProcessRunner
 
     private function startProcess(ProcessBearer $processBearer): void
     {
-        $processBearer->getProcess()->start();
+        // $processBearer->getProcess()->start();
 
         $this->runningProcesses[] = $processBearer;
     }

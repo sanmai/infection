@@ -66,7 +66,7 @@ final class TextFileLogger extends FileLogger
     /**
      * @param MutantExecutionResult[] $executionResults
      */
-    private function getLogParts(array $executionResults, string $headlinePrefix): string
+    private function getLogParts(iterable $executionResults, string $headlinePrefix): string
     {
         $logParts = $this->getHeadlineParts($headlinePrefix);
         $this->sortProcesses($executionResults);
