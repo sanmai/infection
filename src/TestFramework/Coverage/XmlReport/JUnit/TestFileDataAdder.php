@@ -33,69 +33,69 @@
 
 declare(strict_types=1);
 
-namespace Infection\TestFramework\Coverage\XmlReport;
+namespace Infection\TestFramework\Coverage\XmlReport\JUnit;
 
-use function array_key_exists;
+use function explode;
 use Infection\AbstractTestFramework\Coverage\CoverageLineData;
-use function Safe\usort;
+use Infection\AbstractTestFramework\TestFrameworkAdapter;
+use Infection\TestFramework\Coverage\CoveredFileData;
 
 /**
+ * Adds test execution info to selected covered file data object.
+ *
  * @internal
  */
-final class JUnitTestCaseSorter
+final class TestFileDataAdder
 {
-    /**
-     * @param CoverageLineData[] $coverageTestCases
-     *
-     * @return string[]
-     */
-    public function getUniqueSortedFileNames(array $coverageTestCases): iterable
-    {
-        $uniqueCoverageTests = $this->uniqueByTestFile($coverageTestCases);
+    /** @var ?TestFileDataProvider */
+    private $testFileDataProvider;
 
-        if (count($uniqueCoverageTests) === 1) {
-            // Around 5% speed up compared to when without this optimization.
-            yield current($uniqueCoverageTests)->testFilePath;
-
-            return;
-        }
-
-        /*
-         * Two tests per file are also very frequent. Yet it doesn't make sense
-         * to sort them by hand: apparently usort does that just as good.
-         */
-
-        // sort tests to run the fastest first
-        usort(
-            $uniqueCoverageTests,
-            static function (CoverageLineData $a, CoverageLineData $b) {
-                return $a->time <=> $b->time;
-            }
-        );
-
-        foreach ($uniqueCoverageTests as $coverageLineData) {
-            yield $coverageLineData->testFilePath;
+    public function __construct(
+        TestFrameworkAdapter $adapter,
+        TestFileDataProvider $testFileDataProvider
+    ) {
+        if ($adapter->hasJUnitReport()) {
+            $this->testFileDataProvider = $testFileDataProvider;
         }
     }
 
     /**
-     * @param CoverageLineData[] $coverageTestCases
-     *
-     * @return CoverageLineData[]
+     * @return iterable<CoveredFileData>
      */
-    private function uniqueByTestFile(array $coverageTestCases): array
+    public function addTestExecutionInfo(iterable $coverage): iterable
     {
-        // It is faster to have two arrays, and discard one later.
-        $usedFileNames = [];
-        $uniqueTests = [];
-
-        foreach ($coverageTestCases as $coverageLineData) {
-            if (!array_key_exists($coverageLineData->testFilePath, $usedFileNames)) {
-                $uniqueTests[] = $coverageLineData;
-                $usedFileNames[$coverageLineData->testFilePath] = true;
-            }
+        if ($this->testFileDataProvider === null) {
+            return $coverage;
         }
 
-        return $uniqueTests;
+        return $this->testExecutionInfoAdder($coverage);
+    }
+
+    /**
+     * @param iterable<CoveredFileData> $coverage
+     */
+    private function testExecutionInfoAdder(iterable $coverage): iterable
+    {
+        foreach ($coverage as $data) {
+            foreach ($data->getCoverageFileData()->byLine as $linesCoverageData) {
+                foreach ($linesCoverageData as $test) {
+                    self::updateTestExecutionInfo($test, $this->testFileDataProvider);
+                }
+            }
+
+            yield $data;
+        }
+    }
+
+    private static function updateTestExecutionInfo(
+        CoverageLineData $test,
+        TestFileDataProvider $testFileDataProvider
+    ): void {
+        $class = explode(':', $test->testMethod, 2)[0];
+
+        $testFileData = $testFileDataProvider->getTestFileInfo($class);
+
+        $test->testFilePath = $testFileData->path;
+        $test->time = $testFileData->time;
     }
 }

@@ -33,22 +33,36 @@
 
 declare(strict_types=1);
 
-namespace Infection\TestFramework\Coverage\XmlReport;
+namespace Infection\TestFramework\Coverage;
+
+use Infection\FileSystem\SourceFileFilter;
 
 /**
+ * @see CoveredFileDataFactory
+ *
  * @internal
  */
-interface TestFileDataProvider
+final class CoveredFileNameFilter
 {
+    private $filter;
+
+    public function __construct(
+        SourceFileFilter $filter
+    ) {
+        $this->filter = $filter;
+    }
+
     /**
-     * Provides 1) file name of the test file that contains passed as a parameter test class
-     *          2) Time test was executed with
+     * @param iterable<CoveredFileData> $input
      *
-     * Example for file name:
-     *      param:  '\NameSpace\Sub\TestClass'
-     *      return: '/path/to/NameSpace/Sub/TestClass.php'
-     *
-     * @return TestFileTimeData file path and time
+     * @return iterable<CoveredFileData>
      */
-    public function getTestFileInfo(string $fullyQualifiedClassName): TestFileTimeData;
+    public function filter(iterable $input): iterable
+    {
+        foreach ($input as $data) {
+            if ($this->filter->accept($data->getSplFileInfo())) {
+                yield $data;
+            }
+        }
+    }
 }

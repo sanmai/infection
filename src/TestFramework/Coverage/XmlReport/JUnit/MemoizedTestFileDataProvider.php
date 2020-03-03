@@ -33,46 +33,35 @@
 
 declare(strict_types=1);
 
-namespace Infection\TestFramework\Coverage\XmlReport;
+namespace Infection\TestFramework\Coverage\XmlReport\JUnit;
 
-use Infection\AbstractTestFramework\TestFrameworkAdapter;
-use Infection\TestFramework\Coverage\CoveredFileData;
-use Infection\TestFramework\Coverage\CoveredFileDataProvider;
-use Infection\TestFramework\PhpUnit\Coverage\IndexXmlCoverageParser;
-use Infection\TestFramework\TestFrameworkTypes;
-use Webmozart\Assert\Assert;
+use function array_key_exists;
 
 /**
- * @internal
+ * Caches parsed rows from JUnit report.
  *
- * @see CoveredFileDataFactory
+ * @internal
  */
-final class XMLLineCodeCoverageFactory
+final class MemoizedTestFileDataProvider implements TestFileDataProvider
 {
-    private $coverageDir;
-    private $coverageXmlParser;
-
-    public function __construct(
-        string $coverageDir,
-        IndexXmlCoverageParser $coverageXmlParser
-    ) {
-        $this->coverageDir = $coverageDir;
-        $this->coverageXmlParser = $coverageXmlParser;
-    }
+    private $provider;
 
     /**
-     * @return iterable<CoveredFileData>
+     * @var array<string, TestFileTimeData>
      */
-    public function create(
-        string $testFrameworkKey,
-        TestFrameworkAdapter $adapter
-    ): CoveredFileDataProvider {
-        Assert::oneOf($testFrameworkKey, TestFrameworkTypes::TYPES);
+    private $cache = [];
 
-        return new PhpUnitXmlCoverageFactory(
-            $this->coverageDir,
-            $this->coverageXmlParser,
-            $testFrameworkKey,
-        );
+    public function __construct(TestFileDataProvider $decoratedProvider)
+    {
+        $this->provider = $decoratedProvider;
+    }
+
+    public function getTestFileInfo(string $fullyQualifiedClassName): TestFileTimeData
+    {
+        if (!array_key_exists($fullyQualifiedClassName, $this->cache)) {
+            $this->cache[$fullyQualifiedClassName] = $this->provider->getTestFileInfo($fullyQualifiedClassName);
+        }
+
+        return $this->cache[$fullyQualifiedClassName];
     }
 }

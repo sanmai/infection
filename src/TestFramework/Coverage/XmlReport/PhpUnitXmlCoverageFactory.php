@@ -36,19 +36,17 @@ declare(strict_types=1);
 namespace Infection\TestFramework\Coverage\XmlReport;
 
 use function dirname;
-use function explode;
 use function file_exists;
-use Infection\AbstractTestFramework\Coverage\CoverageLineData;
 use Infection\TestFramework\Coverage\CoverageDoesNotExistException;
-use Infection\TestFramework\Coverage\CoverageFileData;
 use Infection\TestFramework\Coverage\CoveredFileData;
 use Infection\TestFramework\Coverage\CoveredFileDataProvider;
 use Infection\TestFramework\PhpUnit\Coverage\IndexXmlCoverageParser;
-use function Pipeline\take;
 use function Safe\file_get_contents;
 
 /**
- * Source of all coverage data.
+ * Source of primary coverage data. Used by CoveredFileDataFactory.
+ *
+ * @see CoveredFileDataFactory
  *
  * @internal
  * @final
@@ -62,18 +60,15 @@ class PhpUnitXmlCoverageFactory implements CoveredFileDataProvider
 
     private $coverageDir;
     private $parser;
-    private $testFileDataProvider;
     private $testFrameworkKey;
 
     public function __construct(
         string $coverageDir,
         IndexXmlCoverageParser $coverageXmlParser,
-        string $testFrameworkKey,
-        ?TestFileDataProvider $testFileDataProvider
+        string $testFrameworkKey
     ) {
         $this->coverageDir = $coverageDir;
         $this->parser = $coverageXmlParser;
-        $this->testFileDataProvider = $testFileDataProvider;
         $this->testFrameworkKey = $testFrameworkKey;
     }
 
@@ -96,39 +91,6 @@ class PhpUnitXmlCoverageFactory implements CoveredFileDataProvider
 
         $coverageIndexFileContent = file_get_contents($coverageIndexFilePath);
 
-        $coverage = $this->parser->parseLazy($coverageIndexFileContent);
-
-        if ($this->testFileDataProvider === null) {
-            return $coverage;
-        }
-
-        return take($coverage)->map(function (CoveredFileData $data) {
-            $data->setTestFileDataProviderCallback(function (CoverageFileData $data): void {
-                $this->addTestExecutionInfo($data);
-            });
-
-            return $data;
-        });
-    }
-
-    private function addTestExecutionInfo(CoverageFileData $data): void
-    {
-        foreach ($data->byLine as $linesCoverageData) {
-            foreach ($linesCoverageData as $test) {
-                self::updateTestExecutionInfo($test, $this->testFileDataProvider);
-            }
-        }
-    }
-
-    private static function updateTestExecutionInfo(
-        CoverageLineData $test,
-        TestFileDataProvider $testFileDataProvider
-    ): void {
-        $class = explode(':', $test->testMethod, 2)[0];
-
-        $testFileData = $testFileDataProvider->getTestFileInfo($class);
-
-        $test->testFilePath = $testFileData->path;
-        $test->time = $testFileData->time;
+        return $this->parser->parseLazy($coverageIndexFileContent);
     }
 }

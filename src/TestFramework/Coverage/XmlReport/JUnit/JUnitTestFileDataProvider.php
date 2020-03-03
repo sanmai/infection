@@ -33,11 +33,12 @@
 
 declare(strict_types=1);
 
-namespace Infection\TestFramework\Coverage\XmlReport;
+namespace Infection\TestFramework\Coverage\XmlReport\JUnit;
 
 use DOMDocument;
 use function file_exists;
 use Infection\TestFramework\Coverage\CoverageDoesNotExistException;
+use Infection\TestFramework\Coverage\XmlReport\TestFileNameNotFoundException;
 use Infection\TestFramework\SafeDOMXPath;
 use function Safe\preg_replace;
 use function Safe\sprintf;

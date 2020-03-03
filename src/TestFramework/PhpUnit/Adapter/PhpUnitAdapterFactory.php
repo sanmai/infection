@@ -37,8 +37,8 @@ namespace Infection\TestFramework\PhpUnit\Adapter;
 
 use Infection\AbstractTestFramework\TestFrameworkAdapter;
 use Infection\AbstractTestFramework\TestFrameworkAdapterFactory;
+use Infection\TestFramework\Codeception\Coverage\JUnitTestCaseSorter;
 use Infection\TestFramework\CommandLineBuilder;
-use Infection\TestFramework\Coverage\XmlReport\JUnitTestCaseSorter;
 use Infection\TestFramework\PhpUnit\CommandLine\ArgumentsAndOptionsBuilder;
 use Infection\TestFramework\PhpUnit\Config\Builder\InitialConfigBuilder;
 use Infection\TestFramework\PhpUnit\Config\Builder\MutationConfigBuilder;

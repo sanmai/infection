@@ -85,10 +85,13 @@ use Infection\Resource\Time\Stopwatch;
 use Infection\Resource\Time\TimeFormatter;
 use Infection\TestFramework\CommandLineBuilder;
 use Infection\TestFramework\Config\TestFrameworkConfigLocator;
+use Infection\TestFramework\Coverage\CoveredFileDataFactory;
+use Infection\TestFramework\Coverage\CoveredFileNameFilter;
 use Infection\TestFramework\Coverage\LineRangeCalculator;
-use Infection\TestFramework\Coverage\XmlReport\JUnitTestFileDataProvider;
-use Infection\TestFramework\Coverage\XmlReport\MemoizedTestFileDataProvider;
-use Infection\TestFramework\Coverage\XmlReport\TestFileDataProvider;
+use Infection\TestFramework\Coverage\XmlReport\JUnit\JUnitTestFileDataProvider;
+use Infection\TestFramework\Coverage\XmlReport\JUnit\MemoizedTestFileDataProvider;
+use Infection\TestFramework\Coverage\XmlReport\JUnit\TestFileDataAdder;
+use Infection\TestFramework\Coverage\XmlReport\JUnit\TestFileDataProvider;
 use Infection\TestFramework\Coverage\XmlReport\XMLLineCodeCoverageFactory;
 use Infection\TestFramework\Factory;
 use Infection\TestFramework\PhpUnit\Config\Path\PathReplacer;
@@ -150,12 +153,33 @@ final class Container
             IndexXmlCoverageParser::class => static function (self $container): IndexXmlCoverageParser {
                 return new IndexXmlCoverageParser($container->getConfiguration()->getCoveragePath());
             },
+            CoveredFileDataFactory::class => static function (self $container): CoveredFileDataFactory {
+                return new CoveredFileDataFactory(
+                    $container->getXMLLineCodeCoverageFactory()->create(
+                        $container->getConfiguration()->getTestFramework(),
+                        $container->getTestFrameworkAdapter()
+                    ),
+                    $container->getTestFileDataAdder(),
+                    $container->getCoveredFileNameFilter(),
+
+                    $container->getConfiguration()->getSourceFiles()
+                );
+            },
+            CoveredFileNameFilter::class => static function (self $container): CoveredFileNameFilter {
+                return new CoveredFileNameFilter(
+                    $container->getConfiguration()->getSourceFileFilter()
+                );
+            },
+            TestFileDataAdder::class => static function (self $container): TestFileDataAdder {
+                return new TestFileDataAdder(
+                    $container->getTestFrameworkAdapter(),
+                    $container->getMemoizedTestFileDataProvider()
+                );
+            },
             XMLLineCodeCoverageFactory::class => static function (self $container): XMLLineCodeCoverageFactory {
                 return new XMLLineCodeCoverageFactory(
                     $container->getConfiguration()->getCoveragePath(),
                     $container->getIndexXmlCoverageParser(),
-                    $container->getMemoizedTestFileDataProvider(),
-                    $container->getConfiguration()->getSourceFiles()
                 );
             },
             RootsFileOrDirectoryLocator::class => static function (self $container): RootsFileOrDirectoryLocator {
@@ -389,10 +413,7 @@ final class Container
                 $config = $container->getConfiguration();
 
                 return new MutationGenerator(
-                    $container->getXMLLineCodeCoverageFactory()->create(
-                        $config->getTestFramework(),
-                        $container->getTestFrameworkAdapter()
-                    ),
+                    $container->getCoveredFileDataFactory(),
                     $config->getMutators(),
                     $container->getEventDispatcher(),
                     $container->getFileMutationGenerator(),
@@ -530,6 +551,21 @@ final class Container
     public function getIndexXmlCoverageParser(): IndexXmlCoverageParser
     {
         return $this->get(IndexXmlCoverageParser::class);
+    }
+
+    public function getCoveredFileDataFactory(): CoveredFileDataFactory
+    {
+        return $this->get(CoveredFileDataFactory::class);
+    }
+
+    public function getCoveredFileNameFilter(): CoveredFileNameFilter
+    {
+        return $this->get(CoveredFileNameFilter::class);
+    }
+
+    public function getTestFileDataAdder(): TestFileDataAdder
+    {
+        return $this->get(TestFileDataAdder::class);
     }
 
     public function getXMLLineCodeCoverageFactory(): XMLLineCodeCoverageFactory

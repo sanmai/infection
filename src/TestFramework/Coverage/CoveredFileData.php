@@ -35,13 +35,17 @@ declare(strict_types=1);
 
 namespace Infection\TestFramework\Coverage;
 
+use Infection\TestFramework\Coverage\XmlReport\JUnit\TestFileDataAdder;
+use Infection\TestFramework\Coverage\XmlReport\XMLLineCodeCoverage;
 use Symfony\Component\Finder\SplFileInfo;
 use Webmozart\Assert\Assert;
 
 /**
+ * Workhorse AKA envelope for all things coverage-related in regard of mutators.
+ *
  * @internal
  */
-final class CoveredFileData
+final class CoveredFileData implements LineCodeCoverage
 {
     /**
      * @var SplFileInfo
@@ -56,18 +60,14 @@ final class CoveredFileData
     /** @var iterable<CoverageFileData> */
     private $lazyCoverageFileData;
 
-    /** @var callable|null */
-    private $testDataProviderCallback;
+    private $lineCodeCoverage;
 
     public function __construct(SplFileInfo $sourceFile, iterable $lazyCoverageFileData)
     {
         $this->sourceFile = $sourceFile;
-        $this->lazyCoverageFileData = $lazyCoverageFileData;
-    }
 
-    public function setTestFileDataProviderCallback(callable $testFileDataProviderCallback): void
-    {
-        $this->testDataProviderCallback = $testFileDataProviderCallback;
+        // There's no point to have it parsed right away as we may not need it, e.g. because of a filter
+        $this->lazyCoverageFileData = $lazyCoverageFileData;
     }
 
     public function getSplFileInfo(): SplFileInfo
@@ -75,23 +75,47 @@ final class CoveredFileData
         return $this->sourceFile;
     }
 
+    /**
+     * Accessor used to update CoverageFileData with TestFileTimeData.
+     *
+     * @see TestFileDataAdder
+     */
     public function getCoverageFileData(): CoverageFileData
     {
-        if ($this->coverageFileData === null) {
-            foreach ($this->lazyCoverageFileData as $coverageFileData) {
-                $this->coverageFileData = $coverageFileData;
-
-                break;
-            }
-
-            Assert::isInstanceOf($this->coverageFileData, CoverageFileData::class);
-            $this->lazyCoverageFileData = [];
-
-            if ($this->testDataProviderCallback !== null) {
-                ($this->testDataProviderCallback)($this->coverageFileData);
-            }
+        if ($this->coverageFileData !== null) {
+            return $this->coverageFileData;
         }
 
+        foreach ($this->lazyCoverageFileData as $coverageFileData) {
+            $this->coverageFileData = $coverageFileData;
+
+            break;
+        }
+
+        Assert::isInstanceOf($this->coverageFileData, CoverageFileData::class);
+        $this->lazyCoverageFileData = []; // let GC have it
+
         return $this->coverageFileData;
+    }
+
+    public function getAllTestsForMutation(NodeLineRangeData $lineRange, bool $isOnFunctionSignature): iterable
+    {
+        return $this->lineCodeCoverage->getAllTestsForMutation($lineRange, $isOnFunctionSignature);
+    }
+
+    public function hasTests(): bool
+    {
+        return $this->lineCodeCoverage->hasTests();
+    }
+
+    private function getXMLLineCodeCoverage(): XMLLineCodeCoverage
+    {
+        if ($this->lineCodeCoverage !== null) {
+            return $this->lineCodeCoverage;
+        }
+
+        $this->lineCodeCoverage = new XMLLineCodeCoverage($this->getCoverageFileData());
+
+        return $this->lineCodeCoverage;
     }
 }

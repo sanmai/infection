@@ -33,46 +33,54 @@
 
 declare(strict_types=1);
 
-namespace Infection\TestFramework\Coverage\XmlReport;
+namespace Infection\FileSystem;
 
-use Infection\AbstractTestFramework\TestFrameworkAdapter;
-use Infection\TestFramework\Coverage\CoveredFileData;
-use Infection\TestFramework\Coverage\CoveredFileDataProvider;
-use Infection\TestFramework\PhpUnit\Coverage\IndexXmlCoverageParser;
-use Infection\TestFramework\TestFrameworkTypes;
-use Webmozart\Assert\Assert;
+use function explode;
+use function Pipeline\take;
+use RuntimeException;
+use Symfony\Component\Finder\SplFileInfo;
 
 /**
  * @internal
- *
- * @see CoveredFileDataFactory
  */
-final class XMLLineCodeCoverageFactory
+final class SourceFileFilter
 {
-    private $coverageDir;
-    private $coverageXmlParser;
-
-    public function __construct(
-        string $coverageDir,
-        IndexXmlCoverageParser $coverageXmlParser
-    ) {
-        $this->coverageDir = $coverageDir;
-        $this->coverageXmlParser = $coverageXmlParser;
-    }
+    private $sourceDirectories;
+    private $excludeDirectories;
+    private $filterArray;
 
     /**
-     * @return iterable<CoveredFileData>
+     * @param string[] $sourceDirectories
+     * @param string[] $excludeDirectories
+     *
+     * @return iterable<SplFileInfo>
      */
-    public function create(
-        string $testFrameworkKey,
-        TestFrameworkAdapter $adapter
-    ): CoveredFileDataProvider {
-        Assert::oneOf($testFrameworkKey, TestFrameworkTypes::TYPES);
+    public function __construct(
+        array $sourceDirectories,
+        array $excludeDirectories,
+        string $filter
+    ) {
+        $this->sourceDirectories = $sourceDirectories;
+        $this->excludeDirectories = $excludeDirectories;
+        $this->filterArray = take(explode(',', $filter))
+            ->map('trim')
+            ->filter()
+            ->toArray();
+    }
 
-        return new PhpUnitXmlCoverageFactory(
-            $this->coverageDir,
-            $this->coverageXmlParser,
-            $testFrameworkKey,
-        );
+    /** @see SourceFileCollector */
+    public function getFilterArray(): array
+    {
+        return $this->filterArray;
+    }
+
+    public function accept(SplFileInfo $file): bool
+    {
+        if ($this->filterArray !== []) {
+            throw new RuntimeException('Not implemented yet');
+        }
+
+        // TODO
+        return true;
     }
 }
