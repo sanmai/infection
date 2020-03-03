@@ -43,12 +43,17 @@ use Infection\TestFramework\Coverage\CoverageDoesNotExistException;
 use Infection\TestFramework\Coverage\CoverageFileData;
 use Infection\TestFramework\PhpUnit\Coverage\IndexXmlCoverageParser;
 use function Safe\file_get_contents;
+use Infection\TestFramework\Coverage\CoveredFileData;
+use function Pipeline\take;
+use Infection\TestFramework\Coverage\CoveredFileDataProvider;
 
 /**
+ * Source of all coverage data.
+ *
  * @internal
  * @final
  */
-class PhpUnitXmlCoverageFactory
+class PhpUnitXmlCoverageFactory implements CoveredFileDataProvider
 {
     /**
      * TODO: make this constant private
@@ -75,9 +80,9 @@ class PhpUnitXmlCoverageFactory
     /**
      * @throws CoverageDoesNotExistException
      *
-     * @return array<string, CoverageFileData>
+     * @return iterable<CoveredFileData>
      */
-    public function createCoverage(): array
+    public function createCoverage(): iterable
     {
         $coverageIndexFilePath = $this->coverageDir . '/' . self::COVERAGE_INDEX_FILE_NAME;
 
@@ -91,28 +96,28 @@ class PhpUnitXmlCoverageFactory
 
         $coverageIndexFileContent = file_get_contents($coverageIndexFilePath);
 
-        $coverage = $this->parser->parse($coverageIndexFileContent);
+        $coverage = $this->parser->parseLazy($coverageIndexFileContent);
 
-        $this->addTestExecutionInfo($coverage);
+        if ($this->testFileDataProvider === null) {
+            return $coverage;
+        }
 
-        return $coverage;
+        return $this->addTestExecutionInfo($coverage);
     }
 
     /**
-     * @param CoverageFileData[] $coverage
+     * @param iterable<CoveredFileData> $coverage
      */
-    private function addTestExecutionInfo(array $coverage): void
+    private function addTestExecutionInfo(iterable $coverage): iterable
     {
-        if ($this->testFileDataProvider === null) {
-            return;
-        }
-
-        foreach ($coverage as $sourceFilePath => $fileCoverageData) {
-            foreach ($fileCoverageData->byLine as $line => $linesCoverageData) {
+        foreach ($coverage as $data) {
+            foreach ($data->coverageFileData->byLine as $linesCoverageData) {
                 foreach ($linesCoverageData as $test) {
                     self::updateTestExecutionInfo($test, $this->testFileDataProvider);
                 }
             }
+
+            yield $data;
         }
     }
 

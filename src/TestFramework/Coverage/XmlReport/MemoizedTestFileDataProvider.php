@@ -44,8 +44,10 @@ final class MemoizedTestFileDataProvider implements TestFileDataProvider
 {
     private $provider;
 
+    private $fullyQualifiedClassName;
+
     /**
-     * @var array<string, TestFileTimeData>
+     * @var TestFileTimeData
      */
     private $cache = [];
 
@@ -56,10 +58,12 @@ final class MemoizedTestFileDataProvider implements TestFileDataProvider
 
     public function getTestFileInfo(string $fullyQualifiedClassName): TestFileTimeData
     {
-        if (!array_key_exists($fullyQualifiedClassName, $this->cache)) {
-            $this->cache[$fullyQualifiedClassName] = $this->provider->getTestFileInfo($fullyQualifiedClassName);
+        if ($this->fullyQualifiedClassName === $fullyQualifiedClassName) {
+            return $this->cache;
         }
 
-        return $this->cache[$fullyQualifiedClassName];
+        $this->fullyQualifiedClassName = $fullyQualifiedClassName;
+
+        return $this->cache = $this->provider->getTestFileInfo($fullyQualifiedClassName);
     }
 }

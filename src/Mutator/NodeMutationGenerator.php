@@ -46,6 +46,7 @@ use PhpParser\Node;
 use function Pipeline\take;
 use Throwable;
 use Webmozart\Assert\Assert;
+use Infection\IterableCounter;
 
 /**
  * @internal
@@ -118,10 +119,14 @@ class NodeMutationGenerator
         }
 
         $tests = $this->codeCoverageData->getAllTestsForMutation(
-            $this->filePath,
             $this->lineRangeCalculator->calculateRange($node),
             $isOnFunctionSignature
         );
+
+        if ($tests instanceof \Traversable) {
+            $tests = iterator_to_array($tests);
+        }
+
 
         if ($this->onlyCovered && count($tests) === 0) {
             return;

@@ -80,7 +80,7 @@ class Mutation
     /**
      * @param Node[] $originalFileAst
      * @param array<string|int|float> $attributes
-     * @param CoverageLineData[] $tests
+     * @param array<CoverageLineData> $tests
      */
     public function __construct(
         string $originalFilePath,
@@ -93,7 +93,6 @@ class Mutation
         array $tests
     ) {
         Assert::oneOf($mutatorName, array_keys(ProfileList::ALL_MUTATORS));
-        Assert::allIsInstanceOf($tests, CoverageLineData::class);
 
         foreach (self::ATTRIBUTE_KEYS as $key) {
             Assert::keyExists($attributes, $key);

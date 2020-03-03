@@ -33,37 +33,19 @@
 
 declare(strict_types=1);
 
-namespace Infection\PhpParser;
-
-use PhpParser\Node;
-use PhpParser\Parser;
-use Symfony\Component\Finder\SplFileInfo;
-use Throwable;
+namespace Infection\TestFramework\Coverage;
 
 /**
  * @internal
- * @final
  */
-class FileParser
+interface CoveredFileDataProvider
 {
-    private $parser;
-
-    public function __construct(Parser $parser)
-    {
-        $this->parser = $parser;
-    }
-
     /**
-     * @throws UnparsableFile
+     * @throws CoverageDoesNotExistException
      *
-     * @return Node[]
+     * @return iterable<CoveredFileData>
      */
-    public function parse(string $filePath): array
-    {
-        try {
-            return $this->parser->parse(file_get_contents($filePath));
-        } catch (Throwable $throwable) {
-            throw UnparsableFile::fromInvalidFile($filePath, $throwable);
-        }
-    }
+    public function createCoverage(): iterable;
+
 }
+

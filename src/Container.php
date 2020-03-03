@@ -154,7 +154,8 @@ final class Container
                 return new XMLLineCodeCoverageFactory(
                     $container->getConfiguration()->getCoveragePath(),
                     $container->getIndexXmlCoverageParser(),
-                    $container->getMemoizedTestFileDataProvider()
+                    $container->getMemoizedTestFileDataProvider(),
+                    $container->getConfiguration()->getSourceFiles()
                 );
             },
             RootsFileOrDirectoryLocator::class => static function (self $container): RootsFileOrDirectoryLocator {
@@ -388,7 +389,6 @@ final class Container
                 $config = $container->getConfiguration();
 
                 return new MutationGenerator(
-                    $config->getSourceFiles(),
                     $container->getXMLLineCodeCoverageFactory()->create(
                         $config->getTestFramework(),
                         $container->getTestFrameworkAdapter()

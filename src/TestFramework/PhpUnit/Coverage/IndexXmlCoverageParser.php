@@ -65,9 +65,38 @@ class IndexXmlCoverageParser
      * @throws NoLineExecuted
      * @throws CoverageDoesNotExistException
      *
+     * @return iterable<CoveredFileData>
+     */
+    public function parseLazy(string $coverageXmlContent): iterable
+    {
+        $xPath = self::createXPath($coverageXmlContent);
+
+        self::assertHasCoverage($xPath);
+
+        $nodes = $xPath->query('//file');
+
+        $projectSource = self::getProjectSource($xPath);
+
+        foreach ($nodes as $node) {
+            $relativeCoverageFilePath = $node->getAttribute('href');
+
+            $parser = new XmlCoverageParser($this->coverageDir, $relativeCoverageFilePath, $projectSource);
+
+            yield $parser->parse();
+        }
+    }
+
+    /**
+     * Parses the given PHPUnit XML coverage index report (index.xml) to collect the general
+     * coverage data. Note that this data is likely incomplete an will need to be enriched to
+     * contain all the desired data.
+     *
+     * @throws NoLineExecuted
+     * @throws CoverageDoesNotExistException
+     *
      * @deprecated in favor of parseLazy
      *
-     * @return CoverageFileData[]
+     * @return array<string, CoverageFileData>
      */
     public function parse(string $coverageXmlContent): array
     {
@@ -89,27 +118,6 @@ class IndexXmlCoverageParser
         return new SafeDOMXPath($document);
     }
 
-    /**
-     * @return iterable<CoveredFileData>
-     */
-    private function parseLazy(string $coverageXmlContent): iterable
-    {
-        $xPath = self::createXPath($coverageXmlContent);
-
-        self::assertHasCoverage($xPath);
-
-        $nodes = $xPath->query('//file');
-
-        $projectSource = self::getProjectSource($xPath);
-
-        foreach ($nodes as $node) {
-            $relativeCoverageFilePath = $node->getAttribute('href');
-
-            $parser = new XmlCoverageParser($this->coverageDir, $relativeCoverageFilePath, $projectSource);
-
-            yield $parser->parse();
-        }
-    }
 
     /**
      * Remove namespace to work with xPath without a headache

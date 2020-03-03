@@ -46,6 +46,9 @@ use Infection\PhpParser\Visitor\IgnoreNode\NodeIgnorer;
 use Infection\TestFramework\Coverage\LineCodeCoverage;
 use Symfony\Component\Finder\SplFileInfo;
 use Webmozart\Assert\Assert;
+use Infection\TestFramework\Coverage\CoveredFileDataProvider;
+use Infection\TestFramework\Coverage\CoveredFileData;
+use Infection\TestFramework\Coverage\XmlReport\XMLLineCodeCoverage;
 
 /**
  * @internal
@@ -53,7 +56,7 @@ use Webmozart\Assert\Assert;
 final class MutationGenerator
 {
     /**
-     * @var iterable<SplFileInfo>
+     * @var iterable<CoveredFileData>|CoveredFileData[]
      */
     private $sourceFiles;
 
@@ -62,7 +65,7 @@ final class MutationGenerator
      */
     private $mutators;
 
-    private $codeCoverageData;
+    private $coveredFileDataProvider;
     private $eventDispatcher;
     private $fileMutationGenerator;
     private $runConcurrently;
@@ -73,7 +76,6 @@ final class MutationGenerator
      */
     public function __construct(
         iterable $sourceFiles,
-        LineCodeCoverage $codeCoverageData,
         array $mutators,
         EventDispatcher $eventDispatcher,
         FileMutationGenerator $fileMutationGenerator,
@@ -82,7 +84,6 @@ final class MutationGenerator
         Assert::allIsInstanceOf($mutators, Mutator::class);
 
         $this->sourceFiles = $sourceFiles;
-        $this->codeCoverageData = $codeCoverageData;
         $this->mutators = $mutators;
         $this->eventDispatcher = $eventDispatcher;
         $this->fileMutationGenerator = $fileMutationGenerator;
@@ -103,11 +104,12 @@ final class MutationGenerator
 
         $this->eventDispatcher->dispatch(new MutationGenerationWasStarted($numberOfFiles));
 
-        foreach ($this->sourceFiles as $fileInfo) {
+        foreach ($this->sourceFiles as $fileData) {
+            /** @var CoveredFileData $fileData */
             yield from $this->fileMutationGenerator->generate(
-                $fileInfo,
+                $fileData,
                 $onlyCovered,
-                $this->codeCoverageData,
+                new XMLLineCodeCoverage($fileData->coverageFileData),
                 $this->mutators,
                 $nodeIgnorers
             );

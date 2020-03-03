@@ -39,6 +39,10 @@ use Infection\AbstractTestFramework\TestFrameworkAdapter;
 use Infection\TestFramework\PhpUnit\Coverage\IndexXmlCoverageParser;
 use Infection\TestFramework\TestFrameworkTypes;
 use Webmozart\Assert\Assert;
+use Infection\TestFramework\Coverage\CoveredFileDataProvider;
+use Infection\TestFramework\Coverage\CoveredFileData;
+use Symfony\Component\Finder\SplFileInfo;
+use Infection\TestFramework\Coverage\CoverageFileData;
 
 /**
  * @internal
@@ -48,21 +52,33 @@ final class XMLLineCodeCoverageFactory
     private $coverageDir;
     private $coverageXmlParser;
     private $testFileDataProvider;
+    /** @var SplFileInfo[] */
+    private $sourceFiles;
 
+   /**
+     * @param iterable<SplFileInfo> $sourceFiles
+     */
     public function __construct(
         string $coverageDir,
         IndexXmlCoverageParser $coverageXmlParser,
-        TestFileDataProvider $testFileDataProvider
+        TestFileDataProvider $testFileDataProvider,
+        iterable $sourceFiles
     ) {
         $this->coverageDir = $coverageDir;
         $this->coverageXmlParser = $coverageXmlParser;
         $this->testFileDataProvider = $testFileDataProvider;
+        $this->sourceFiles = $sourceFiles;
     }
 
+    /**
+     * @param string $testFrameworkKey
+     * @param TestFrameworkAdapter $adapter
+     * @return iterable<CoveredFileData>
+     */
     public function create(
         string $testFrameworkKey,
         TestFrameworkAdapter $adapter
-    ): XMLLineCodeCoverage {
+    ): iterable {
         Assert::oneOf($testFrameworkKey, TestFrameworkTypes::TYPES);
 
         $testFileDataProviderService = $adapter->hasJUnitReport()
@@ -70,13 +86,32 @@ final class XMLLineCodeCoverageFactory
             : null
         ;
 
-        return new XMLLineCodeCoverage(
-            new PhpUnitXmlCoverageFactory(
-                $this->coverageDir,
-                $this->coverageXmlParser,
-                $testFrameworkKey,
-                $testFileDataProviderService
-            )
+        $factory = new PhpUnitXmlCoverageFactory(
+            $this->coverageDir,
+            $this->coverageXmlParser,
+            $testFrameworkKey,
+            $testFileDataProviderService
         );
+
+        $seenFiles = [];
+
+        // Shall something else be responsible for this?
+        foreach ($factory->createCoverage() as $data) {
+
+            // FIXME realpath() should not be required here
+            $seenFiles[realpath($data->sourceFilePath)] = true;
+
+            yield $data;
+
+        }
+
+        foreach ($this->sourceFiles as $splFileInfo) {
+            $sourceFilePath = $splFileInfo->getRealPath();
+            if (array_key_exists($sourceFilePath, $seenFiles)) {
+                continue;
+            }
+
+            yield new CoveredFileData($sourceFilePath, new CoverageFileData());
+        }
     }
 }
