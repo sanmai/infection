@@ -73,7 +73,7 @@ final class CoverageFileData
      * @param array<int, array<int, CoverageLineData>> $byLine
      * @param array<string, MethodLocationData> $byMethod
      */
-    public function __construct(array $byLine = [], array $byMethod = [])
+    public function __construct(array &$byLine = [], array &$byMethod = [])
     {
         $this->byLine = $byLine;
         $this->byMethod = $byMethod;

@@ -102,12 +102,12 @@ final class MutationGenerator
 
         $this->eventDispatcher->dispatch(new MutationGenerationWasStarted($numberOfFiles));
 
+        /** @var CoveredFileData $fileData */
         foreach ($this->sourceFiles as $fileData) {
-            /* @var CoveredFileData $fileData */
             yield from $this->fileMutationGenerator->generate(
                 $fileData,
                 $onlyCovered,
-                new XMLLineCodeCoverage($fileData->coverageFileData),
+                new XMLLineCodeCoverage($fileData->getCoverageFileData()),
                 $this->mutators,
                 $nodeIgnorers
             );

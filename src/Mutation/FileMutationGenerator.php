@@ -89,12 +89,14 @@ class FileMutationGenerator
             return;
         }
 
-        $initialStatements = $this->parser->parse($fileData->sourceFilePath);
+        $sourceFilePath = $fileData->getSplFileInfo()->getRealPath();
+
+        $initialStatements = $this->parser->parse($sourceFilePath);
 
         $mutationsCollectorVisitor = new MutationsCollectorVisitor(
             new NodeMutationGenerator(
                 $mutators,
-                $fileData->sourceFilePath,
+                $sourceFilePath,
                 $initialStatements,
                 $codeCoverage,
                 $onlyCovered,

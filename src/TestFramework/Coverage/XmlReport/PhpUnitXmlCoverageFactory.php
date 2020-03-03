@@ -40,9 +40,11 @@ use function explode;
 use function file_exists;
 use Infection\AbstractTestFramework\Coverage\CoverageLineData;
 use Infection\TestFramework\Coverage\CoverageDoesNotExistException;
+use Infection\TestFramework\Coverage\CoverageFileData;
 use Infection\TestFramework\Coverage\CoveredFileData;
 use Infection\TestFramework\Coverage\CoveredFileDataProvider;
 use Infection\TestFramework\PhpUnit\Coverage\IndexXmlCoverageParser;
+use function Pipeline\take;
 use function Safe\file_get_contents;
 
 /**
@@ -100,22 +102,21 @@ class PhpUnitXmlCoverageFactory implements CoveredFileDataProvider
             return $coverage;
         }
 
-        return $this->addTestExecutionInfo($coverage);
+        return take($coverage)->map(function (CoveredFileData $data) {
+            $data->setTestFileDataProviderCallback(function (CoverageFileData $data): void {
+                $this->addTestExecutionInfo($data);
+            });
+
+            return $data;
+        });
     }
 
-    /**
-     * @param iterable<CoveredFileData> $coverage
-     */
-    private function addTestExecutionInfo(iterable $coverage): iterable
+    private function addTestExecutionInfo(CoverageFileData $data): void
     {
-        foreach ($coverage as $data) {
-            foreach ($data->coverageFileData->byLine as $linesCoverageData) {
-                foreach ($linesCoverageData as $test) {
-                    self::updateTestExecutionInfo($test, $this->testFileDataProvider);
-                }
+        foreach ($data->byLine as $linesCoverageData) {
+            foreach ($linesCoverageData as $test) {
+                self::updateTestExecutionInfo($test, $this->testFileDataProvider);
             }
-
-            yield $data;
         }
     }
 

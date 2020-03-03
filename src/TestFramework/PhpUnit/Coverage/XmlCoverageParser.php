@@ -50,6 +50,7 @@ use function Safe\file_get_contents;
 use function Safe\sprintf;
 use function Safe\substr;
 use function str_replace;
+use Symfony\Component\Finder\SplFileInfo;
 use function trim;
 use Webmozart\Assert\Assert;
 
@@ -86,8 +87,13 @@ final class XmlCoverageParser
             $this->coverageDir . '/' . $this->relativeCoverageFilePath
         ));
 
-        $sourceFilePath = self::retrieveSourceFilePath($xPath, $this->relativeCoverageFilePath, $this->projectSource);
+        $sourceFileInfo = self::retrieveSourceFileInfo($xPath, $this->relativeCoverageFilePath, $this->projectSource);
 
+        return new CoveredFileData($sourceFileInfo, $this->getCoverageFileData($xPath));
+    }
+
+    private function getCoverageFileData(SafeDOMXPath $xPath): iterable
+    {
         $linesNode = $xPath->query('/phpunit/file/totals/lines')[0];
 
         $percentage = $linesNode->getAttribute('percent');
@@ -108,13 +114,17 @@ final class XmlCoverageParser
         }
 
         if ($percentage === .0) {
-            return new CoveredFileData($sourceFilePath, new CoverageFileData());
+            yield new CoverageFileData();
+
+            return;
         }
 
         $coveredLineNodes = $xPath->query('/phpunit/file/coverage/line');
 
         if ($coveredLineNodes->length === 0) {
-            return new CoveredFileData($sourceFilePath, new CoverageFileData());
+            yield new CoverageFileData();
+
+            return;
         }
 
         $coveredMethodNodes = $xPath->query('/phpunit/file/class/method');
@@ -123,20 +133,20 @@ final class XmlCoverageParser
             $coveredMethodNodes = $xPath->query('/phpunit/file/trait/method');
         }
 
-        return new CoveredFileData($sourceFilePath, new CoverageFileData(
+        yield new CoverageFileData(
             self::collectCoveredLinesData($coveredLineNodes),
             self::collectMethodsCoverageData($coveredMethodNodes)
-        ));
+        );
     }
 
     /**
      * @throws CoverageDoesNotExistException
      */
-    private static function retrieveSourceFilePath(
+    private static function retrieveSourceFileInfo(
         SafeDOMXPath $xPath,
         string $relativeCoverageFilePath,
         string $projectSource
-    ): string {
+    ): SplFileInfo {
         $fileNode = $xPath->query('/phpunit/file')[0];
 
         Assert::notNull($fileNode);
@@ -165,7 +175,7 @@ final class XmlCoverageParser
             throw CoverageDoesNotExistException::forFileAtPath($fileName, $path);
         }
 
-        return $realPath;
+        return new SplFileInfo($realPath, $relativeFilePath, $path);
     }
 
     /**
@@ -174,7 +184,7 @@ final class XmlCoverageParser
      *
      * @return array<int, array<int, CoverageLineData>>
      */
-    private static function collectCoveredLinesData(DOMNodeList $coveredLineNodes): array
+    private static function &collectCoveredLinesData(DOMNodeList $coveredLineNodes): array
     {
         $data = [];
 
@@ -208,7 +218,7 @@ final class XmlCoverageParser
      *
      * @return MethodLocationData[]
      */
-    private static function collectMethodsCoverageData(DOMNodeList $methodsCoverageNodes): array
+    private static function &collectMethodsCoverageData(DOMNodeList $methodsCoverageNodes): array
     {
         $methodsCoverage = [];
 

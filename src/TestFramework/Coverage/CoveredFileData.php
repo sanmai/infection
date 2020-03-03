@@ -35,24 +35,63 @@ declare(strict_types=1);
 
 namespace Infection\TestFramework\Coverage;
 
+use Symfony\Component\Finder\SplFileInfo;
+use Webmozart\Assert\Assert;
+
 /**
  * @internal
  */
 final class CoveredFileData
 {
     /**
-     * @var string
+     * @var SplFileInfo
      */
-    public $sourceFilePath;
+    private $sourceFile;
 
     /**
-     * @var CoverageFileData
+     * @var CoverageFileData|null
      */
-    public $coverageFileData;
+    private $coverageFileData;
 
-    public function __construct(string $sourceFilePath, CoverageFileData $coverageFileData)
+    /** @var iterable<CoverageFileData> */
+    private $lazyCoverageFileData;
+
+    /** @var callable|null */
+    private $testDataProviderCallback;
+
+    public function __construct(SplFileInfo $sourceFile, iterable $lazyCoverageFileData)
     {
-        $this->sourceFilePath = $sourceFilePath;
-        $this->coverageFileData = $coverageFileData;
+        $this->sourceFile = $sourceFile;
+        $this->lazyCoverageFileData = $lazyCoverageFileData;
+    }
+
+    public function setTestFileDataProviderCallback(callable $testFileDataProviderCallback): void
+    {
+        $this->testDataProviderCallback = $testFileDataProviderCallback;
+    }
+
+    public function getSplFileInfo(): SplFileInfo
+    {
+        return $this->sourceFile;
+    }
+
+    public function getCoverageFileData(): CoverageFileData
+    {
+        if ($this->coverageFileData === null) {
+            foreach ($this->lazyCoverageFileData as $coverageFileData) {
+                $this->coverageFileData = $coverageFileData;
+
+                break;
+            }
+
+            Assert::isInstanceOf($this->coverageFileData, CoverageFileData::class);
+            $this->lazyCoverageFileData = [];
+
+            if ($this->testDataProviderCallback !== null) {
+                ($this->testDataProviderCallback)($this->coverageFileData);
+            }
+        }
+
+        return $this->coverageFileData;
     }
 }

@@ -94,12 +94,13 @@ final class XMLLineCodeCoverageFactory
 
         // Shall something else be responsible for this?
         foreach ($factory->createCoverage() as $data) {
-            // FIXME realpath() should not be required here
-            $seenFiles[realpath($data->sourceFilePath)] = true;
+            /* @var $data CoveredFileData */
+            $seenFiles[$data->getSplFileInfo()->getRealPath()] = true;
 
             yield $data;
         }
 
+        // Since these are sorted sets, there should be a way to optimize.
         foreach ($this->sourceFiles as $splFileInfo) {
             $sourceFilePath = $splFileInfo->getRealPath();
 
@@ -107,7 +108,7 @@ final class XMLLineCodeCoverageFactory
                 continue;
             }
 
-            yield new CoveredFileData($sourceFilePath, new CoverageFileData());
+            yield new CoveredFileData($splFileInfo, [new CoverageFileData()]);
         }
     }
 }
