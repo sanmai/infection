@@ -35,6 +35,8 @@ declare(strict_types=1);
 
 namespace Infection\TestFramework\Coverage\XmlReport;
 
+use function array_key_exists;
+
 /**
  * @internal
  */
@@ -42,10 +44,8 @@ final class MemoizedTestFileDataProvider implements TestFileDataProvider
 {
     private $provider;
 
-    private $fullyQualifiedClassName;
-
     /**
-     * @var TestFileTimeData
+     * @var array<string, TestFileTimeData>
      */
     private $cache = [];
 
@@ -56,12 +56,10 @@ final class MemoizedTestFileDataProvider implements TestFileDataProvider
 
     public function getTestFileInfo(string $fullyQualifiedClassName): TestFileTimeData
     {
-        if ($this->fullyQualifiedClassName === $fullyQualifiedClassName) {
-            return $this->cache;
+        if (!array_key_exists($fullyQualifiedClassName, $this->cache)) {
+            $this->cache[$fullyQualifiedClassName] = $this->provider->getTestFileInfo($fullyQualifiedClassName);
         }
 
-        $this->fullyQualifiedClassName = $fullyQualifiedClassName;
-
-        return $this->cache = $this->provider->getTestFileInfo($fullyQualifiedClassName);
+        return $this->cache[$fullyQualifiedClassName];
     }
 }
