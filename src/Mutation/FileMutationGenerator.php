@@ -42,11 +42,10 @@ use Infection\PhpParser\NodeTraverserFactory;
 use Infection\PhpParser\UnparsableFile;
 use Infection\PhpParser\Visitor\IgnoreNode\NodeIgnorer;
 use Infection\PhpParser\Visitor\MutationsCollectorVisitor;
+use Infection\TestFramework\Coverage\CoveredFileData;
 use Infection\TestFramework\Coverage\LineCodeCoverage;
 use Infection\TestFramework\Coverage\LineRangeCalculator;
-use Symfony\Component\Finder\SplFileInfo;
 use Webmozart\Assert\Assert;
-use Infection\TestFramework\Coverage\CoveredFileData;
 
 /**
  * @internal

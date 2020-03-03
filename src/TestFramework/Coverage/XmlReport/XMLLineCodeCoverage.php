@@ -131,5 +131,4 @@ final class XMLLineCodeCoverage implements LineCodeCoverage
             }
         }
     }
-
 }

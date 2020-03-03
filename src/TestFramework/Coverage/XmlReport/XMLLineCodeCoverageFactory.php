@@ -36,13 +36,12 @@ declare(strict_types=1);
 namespace Infection\TestFramework\Coverage\XmlReport;
 
 use Infection\AbstractTestFramework\TestFrameworkAdapter;
+use Infection\TestFramework\Coverage\CoverageFileData;
+use Infection\TestFramework\Coverage\CoveredFileData;
 use Infection\TestFramework\PhpUnit\Coverage\IndexXmlCoverageParser;
 use Infection\TestFramework\TestFrameworkTypes;
-use Webmozart\Assert\Assert;
-use Infection\TestFramework\Coverage\CoveredFileDataProvider;
-use Infection\TestFramework\Coverage\CoveredFileData;
 use Symfony\Component\Finder\SplFileInfo;
-use Infection\TestFramework\Coverage\CoverageFileData;
+use Webmozart\Assert\Assert;
 
 /**
  * @internal
@@ -55,7 +54,7 @@ final class XMLLineCodeCoverageFactory
     /** @var SplFileInfo[] */
     private $sourceFiles;
 
-   /**
+    /**
      * @param iterable<SplFileInfo> $sourceFiles
      */
     public function __construct(
@@ -71,8 +70,6 @@ final class XMLLineCodeCoverageFactory
     }
 
     /**
-     * @param string $testFrameworkKey
-     * @param TestFrameworkAdapter $adapter
      * @return iterable<CoveredFileData>
      */
     public function create(
@@ -97,16 +94,15 @@ final class XMLLineCodeCoverageFactory
 
         // Shall something else be responsible for this?
         foreach ($factory->createCoverage() as $data) {
-
             // FIXME realpath() should not be required here
             $seenFiles[realpath($data->sourceFilePath)] = true;
 
             yield $data;
-
         }
 
         foreach ($this->sourceFiles as $splFileInfo) {
             $sourceFilePath = $splFileInfo->getRealPath();
+
             if (array_key_exists($sourceFilePath, $seenFiles)) {
                 continue;
             }

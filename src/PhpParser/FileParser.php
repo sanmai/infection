@@ -37,7 +37,6 @@ namespace Infection\PhpParser;
 
 use PhpParser\Node;
 use PhpParser\Parser;
-use Symfony\Component\Finder\SplFileInfo;
 use Throwable;
 
 /**

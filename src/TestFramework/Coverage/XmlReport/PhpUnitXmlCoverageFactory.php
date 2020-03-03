@@ -40,12 +40,10 @@ use function explode;
 use function file_exists;
 use Infection\AbstractTestFramework\Coverage\CoverageLineData;
 use Infection\TestFramework\Coverage\CoverageDoesNotExistException;
-use Infection\TestFramework\Coverage\CoverageFileData;
+use Infection\TestFramework\Coverage\CoveredFileData;
+use Infection\TestFramework\Coverage\CoveredFileDataProvider;
 use Infection\TestFramework\PhpUnit\Coverage\IndexXmlCoverageParser;
 use function Safe\file_get_contents;
-use Infection\TestFramework\Coverage\CoveredFileData;
-use function Pipeline\take;
-use Infection\TestFramework\Coverage\CoveredFileDataProvider;
 
 /**
  * Source of all coverage data.

@@ -46,6 +46,4 @@ interface CoveredFileDataProvider
      * @return iterable<CoveredFileData>
      */
     public function createCoverage(): iterable;
-
 }
-

@@ -43,12 +43,10 @@ use Infection\IterableCounter;
 use Infection\Mutator\Mutator;
 use Infection\PhpParser\UnparsableFile;
 use Infection\PhpParser\Visitor\IgnoreNode\NodeIgnorer;
-use Infection\TestFramework\Coverage\LineCodeCoverage;
-use Symfony\Component\Finder\SplFileInfo;
-use Webmozart\Assert\Assert;
-use Infection\TestFramework\Coverage\CoveredFileDataProvider;
 use Infection\TestFramework\Coverage\CoveredFileData;
 use Infection\TestFramework\Coverage\XmlReport\XMLLineCodeCoverage;
+use Symfony\Component\Finder\SplFileInfo;
+use Webmozart\Assert\Assert;
 
 /**
  * @internal
@@ -105,7 +103,7 @@ final class MutationGenerator
         $this->eventDispatcher->dispatch(new MutationGenerationWasStarted($numberOfFiles));
 
         foreach ($this->sourceFiles as $fileData) {
-            /** @var CoveredFileData $fileData */
+            /* @var CoveredFileData $fileData */
             yield from $this->fileMutationGenerator->generate(
                 $fileData,
                 $onlyCovered,

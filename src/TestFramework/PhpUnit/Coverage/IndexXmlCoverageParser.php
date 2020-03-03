@@ -118,7 +118,6 @@ class IndexXmlCoverageParser
         return new SafeDOMXPath($document);
     }
 
-
     /**
      * Remove namespace to work with xPath without a headache
      */

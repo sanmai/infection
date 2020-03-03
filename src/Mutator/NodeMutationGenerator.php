@@ -45,8 +45,8 @@ use Infection\TestFramework\Coverage\LineRangeCalculator;
 use PhpParser\Node;
 use function Pipeline\take;
 use Throwable;
+use Traversable;
 use Webmozart\Assert\Assert;
-use Infection\IterableCounter;
 
 /**
  * @internal
@@ -123,10 +123,9 @@ class NodeMutationGenerator
             $isOnFunctionSignature
         );
 
-        if ($tests instanceof \Traversable) {
+        if ($tests instanceof Traversable) {
             $tests = iterator_to_array($tests);
         }
-
 
         if ($this->onlyCovered && count($tests) === 0) {
             return;
