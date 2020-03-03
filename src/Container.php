@@ -155,7 +155,9 @@ final class Container
                     $container->getConfiguration()->getCoveragePath(),
                     $container->getIndexXmlCoverageParser(),
                     $container->getMemoizedTestFileDataProvider(),
-                    $container->getConfiguration()->getSourceFiles()
+                    $container->getConfiguration()->mutateOnlyCoveredCode()
+                        ? []
+                        : $container->getConfiguration()->getSourceFiles()
                 );
             },
             RootsFileOrDirectoryLocator::class => static function (self $container): RootsFileOrDirectoryLocator {
