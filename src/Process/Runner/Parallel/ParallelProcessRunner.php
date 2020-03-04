@@ -95,7 +95,7 @@ class ParallelProcessRunner
         $bucket = [];
 
         // Load the first process from the queue to buy us some time.
-        self::fillBucket($bucket, $generator, 1);
+        self::fillBucketOnce($bucket, $generator);
 
         $threadCount = max(1, $threadCount);
 
@@ -104,22 +104,48 @@ class ParallelProcessRunner
             $this->startProcess($process);
 
             if (count($this->runningProcesses) >= $threadCount) {
+                // $this->fillBucketOnBudget($bucket, $generator); // ...within budget
+
                 do {
-                    // Now fill the bucket up to the top
-                    self::fillBucket($bucket, $generator);
-                    usleep($poll);
+                    // While we wait, fetch next process from the queue
+                    self::fillBucketOnce($bucket, $generator);
+                    $this->usleep($poll);
                 } while (!$this->freeTerminatedProcesses());
             }
 
-            // In any case load at least one process to the bucket
-            self::fillBucket($bucket, $generator, 1);
+            // In any case try to load at least one process to the bucket
+            self::fillBucketOnce($bucket, $generator);
         }
 
+        echo "FINAL POLL";
+
         do {
-            usleep($poll);
+            $this->usleep($poll);
             $this->freeTerminatedProcesses();
             // continue loop while there are processes being executed or waiting for execution
         } while ($this->runningProcesses);
+        $this->resetBugdet($bucket);
+
+    }
+
+    private $bugdet = 0;
+
+    private function usleep(int $poll): void
+    {
+        $this->bugdet += $poll;
+
+        usleep($poll);
+    }
+
+    private function resetBugdet(array &$bucket): void
+    {
+        $count = count($bucket);
+
+        if ($this->bugdet > 1000) {
+            echo "\nSpend {$this->bugdet} waiting for processes with $count jobs in a bucket\n";
+        }
+
+        $this->bugdet = 0;
     }
 
     private function freeTerminatedProcesses(): bool
@@ -157,13 +183,47 @@ class ParallelProcessRunner
      * @param ProcessBearer[] $bucket
      * @param Generator<ProcessBearer> $input
      */
-    private static function fillBucket(array &$bucket, Generator $input, int $level = self::MUTATOR_TO_PROCESS_RATIO): void
+    private function fillBucketOnBudget(array &$bucket, Generator $input): bool
     {
-        if (count($bucket) >= $level) {
+        $initBudget = $this->bugdet;
+        $count = 0;
+
+        while ($this->bugdet > 0) {
+
+            $start = microtime(true);
+
+            if (!$input->valid()) {
+                break;
+            }
+
+            $bucket[] = $input->current();
+            $input->next();
+
+            $this->bugdet -= (microtime(true) - $start) * 1000000;
+
+            $count += 1;
+
+        }
+
+        if ($count > 1) {
+             // echo "\nAdded $count jobs to the bucket within $initBudget budget\n";
+        }
+
+        return $count > 0;
+    }
+
+
+    /**
+     * @param ProcessBearer[] $bucket
+     * @param Generator<ProcessBearer> $input
+     */
+    private static function fillBucketOnce(array &$bucket, Generator $input): void
+    {
+        if (count($bucket) >= self::MUTATOR_TO_PROCESS_RATIO) {
             return;
         }
 
-        while ($input->valid() && count($bucket) < $level) {
+        if ($input->valid()) {
             $bucket[] = $input->current();
             $input->next();
         }
