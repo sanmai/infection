@@ -89,11 +89,9 @@ class FileMutationGenerator
             return;
         }
 
-        $sourceFilePath = $fileData->getSplFileInfo()->getRealPath();
+        $sourceFilePath = $fileData->getSplFileInfo()->getPath();
 
-        Assert::string($sourceFilePath);
-
-        $initialStatements = $this->parser->parse($sourceFilePath);
+        $initialStatements = $this->parser->parse($fileData->getSplFileInfo());
 
         $mutationsCollectorVisitor = new MutationsCollectorVisitor(
             new NodeMutationGenerator(

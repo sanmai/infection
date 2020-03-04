@@ -37,7 +37,7 @@ namespace Infection\PhpParser;
 
 use PhpParser\Node;
 use PhpParser\Parser;
-use function Safe\file_get_contents;
+use Symfony\Component\Finder\SplFileInfo;
 use Throwable;
 
 /**
@@ -58,11 +58,16 @@ class FileParser
      *
      * @return Node[]
      */
-    public function parse(string $filePath): array
+    public function parse(SplFileInfo $fileInfo): array
     {
         try {
-            return $this->parser->parse(file_get_contents($filePath));
+            return $this->parser->parse($fileInfo->getContents());
         } catch (Throwable $throwable) {
+            $filePath = $fileInfo->getRealPath() === false
+                ? $fileInfo->getPathname()
+                : $fileInfo->getRealPath()
+            ;
+
             throw UnparsableFile::fromInvalidFile($filePath, $throwable);
         }
     }
