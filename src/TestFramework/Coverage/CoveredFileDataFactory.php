@@ -36,7 +36,7 @@ declare(strict_types=1);
 namespace Infection\TestFramework\Coverage;
 
 use Infection\Mutation\MutationGenerator;
-use Infection\TestFramework\Coverage\XmlReport\JUnit\TestFileDataAdder;
+use Infection\TestFramework\Coverage\JUnit\TestFileDataAdder;
 use Infection\TestFramework\Coverage\XmlReport\PhpUnitXmlCoverageFactory;
 use Symfony\Component\Finder\SplFileInfo;
 use Webmozart\Assert\Assert;

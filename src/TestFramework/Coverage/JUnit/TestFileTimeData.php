@@ -33,22 +33,26 @@
 
 declare(strict_types=1);
 
-namespace Infection\TestFramework\Coverage\XmlReport\JUnit;
+namespace Infection\TestFramework\Coverage\JUnit;
 
 /**
  * @internal
  */
-interface TestFileDataProvider
+final class TestFileTimeData
 {
     /**
-     * Provides 1) file name of the test file that contains passed as a parameter test class
-     *          2) Time test was executed with
-     *
-     * Example for file name:
-     *      param:  '\NameSpace\Sub\TestClass'
-     *      return: '/path/to/NameSpace/Sub/TestClass.php'
-     *
-     * @return TestFileTimeData file path and time
+     * @var string
      */
-    public function getTestFileInfo(string $fullyQualifiedClassName): TestFileTimeData;
+    public $path;
+
+    /**
+     * @var float
+     */
+    public $time;
+
+    public function __construct(string $path, float $time)
+    {
+        $this->path = $path;
+        $this->time = $time;
+    }
 }

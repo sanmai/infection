@@ -36,7 +36,7 @@ declare(strict_types=1);
 namespace Infection\TestFramework\Coverage;
 
 use Infection\FileSystem\Finder\Iterator\RealPathFilterIterator;
-use Infection\TestFramework\Coverage\XmlReport\JUnit\TestFileDataAdder;
+use Infection\TestFramework\Coverage\JUnit\TestFileDataAdder;
 use Infection\TestFramework\Coverage\XmlReport\XMLLineCodeCoverage;
 use Symfony\Component\Finder\SplFileInfo;
 use Webmozart\Assert\Assert;

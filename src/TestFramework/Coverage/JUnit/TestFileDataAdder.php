@@ -33,7 +33,7 @@
 
 declare(strict_types=1);
 
-namespace Infection\TestFramework\Coverage\XmlReport\JUnit;
+namespace Infection\TestFramework\Coverage\JUnit;
 
 use function explode;
 use Infection\AbstractTestFramework\Coverage\CoverageLineData;

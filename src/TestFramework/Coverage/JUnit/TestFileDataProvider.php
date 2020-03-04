@@ -33,35 +33,22 @@
 
 declare(strict_types=1);
 
-namespace Infection\TestFramework\Coverage\XmlReport\JUnit;
-
-use function array_key_exists;
+namespace Infection\TestFramework\Coverage\JUnit;
 
 /**
- * Caches parsed rows from JUnit report.
- *
  * @internal
  */
-final class MemoizedTestFileDataProvider implements TestFileDataProvider
+interface TestFileDataProvider
 {
-    private $provider;
-
     /**
-     * @var array<string, TestFileTimeData>
+     * Provides 1) file name of the test file that contains passed as a parameter test class
+     *          2) Time test was executed with
+     *
+     * Example for file name:
+     *      param:  '\NameSpace\Sub\TestClass'
+     *      return: '/path/to/NameSpace/Sub/TestClass.php'
+     *
+     * @return TestFileTimeData file path and time
      */
-    private $cache = [];
-
-    public function __construct(TestFileDataProvider $decoratedProvider)
-    {
-        $this->provider = $decoratedProvider;
-    }
-
-    public function getTestFileInfo(string $fullyQualifiedClassName): TestFileTimeData
-    {
-        if (!array_key_exists($fullyQualifiedClassName, $this->cache)) {
-            $this->cache[$fullyQualifiedClassName] = $this->provider->getTestFileInfo($fullyQualifiedClassName);
-        }
-
-        return $this->cache[$fullyQualifiedClassName];
-    }
+    public function getTestFileInfo(string $fullyQualifiedClassName): TestFileTimeData;
 }
