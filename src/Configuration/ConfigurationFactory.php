@@ -135,7 +135,7 @@ class ConfigurationFactory
             $this->sourceFileCollector->collectFiles(
                 $schema->getSource()->getDirectories(),
                 $schema->getSource()->getExcludes(),
-                $sourceFileFilter->getFilterArray()
+                $sourceFileFilter->getFilters()
             ),
             $sourceFileFilter,
             $schema->getLogs(),

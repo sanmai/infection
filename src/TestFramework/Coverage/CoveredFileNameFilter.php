@@ -59,10 +59,6 @@ final class CoveredFileNameFilter
      */
     public function filter(iterable $input): iterable
     {
-        foreach ($input as $data) {
-            if ($this->filter->accept($data->getSplFileInfo())) {
-                yield $data;
-            }
-        }
+        return $this->filter->filter($input);
     }
 }

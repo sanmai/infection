@@ -36,8 +36,10 @@ declare(strict_types=1);
 namespace Infection\FileSystem;
 
 use function explode;
+use Infection\FileSystem\Finder\Iterator\RealPathFilterIterator;
+use Infection\TestFramework\Coverage\CoveredFileData;
+use Iterator;
 use function Pipeline\take;
-use RuntimeException;
 use Symfony\Component\Finder\SplFileInfo;
 
 /**
@@ -48,7 +50,7 @@ final class SourceFileFilter
     private $sourceDirectories;
     private $excludeDirectories;
     /** @var string[] */
-    private $filterArray;
+    private $filters;
 
     /**
      * @param string[] $sourceDirectories
@@ -63,7 +65,7 @@ final class SourceFileFilter
     ) {
         $this->sourceDirectories = $sourceDirectories;
         $this->excludeDirectories = $excludeDirectories;
-        $this->filterArray = take(explode(',', $filter))
+        $this->filters = take(explode(',', $filter))
             ->map('trim')
             ->filter()
             ->toArray();
@@ -74,18 +76,44 @@ final class SourceFileFilter
      *
      * @see SourceFileCollector
      */
-    public function getFilterArray(): array
+    public function getFilters(): array
     {
-        return $this->filterArray;
+        return $this->filters;
     }
 
-    public function accept(SplFileInfo $file): bool
+    /**
+     * @param iterable<SplFileInfo&CoveredFileData> $input
+     *
+     * @return iterable<SplFileInfo&CoveredFileData>
+     */
+    public function filter(iterable $input): iterable
     {
-        if ($this->filterArray !== []) {
-            throw new RuntimeException('Not implemented yet');
+        if ($this->filters === []) {
+            return $input;
         }
 
-        // TODO
-        return true;
+        return new RealPathFilterIterator(
+            $this->iterableToIterator($input),
+            $this->filters,
+            []
+        );
+    }
+
+    /**
+     * @param iterable<SplFileInfo&CoveredFileData> $input
+     *
+     * @return \Iterator<SplFileInfo&CoveredFileData>
+     */
+    private function iterableToIterator(iterable $input)
+    {
+        if ($input instanceof Iterator) {
+            // Generator is an iterator, means most of the time we're done right here.
+            return $input;
+        }
+
+        // Clause for all other cases, e.g. when testing
+        return (static function () use ($input): Iterator {
+            yield from $input;
+        })();
     }
 }
