@@ -183,7 +183,7 @@ final class Container
             XMLLineCodeCoverageFactory::class => static function (self $container): XMLLineCodeCoverageFactory {
                 return new XMLLineCodeCoverageFactory(
                     $container->getConfiguration()->getCoveragePath(),
-                    $container->getIndexXmlCoverageParser(),
+                    $container->getIndexXmlCoverageParser()
                 );
             },
             RootsFileOrDirectoryLocator::class => static function (self $container): RootsFileOrDirectoryLocator {
