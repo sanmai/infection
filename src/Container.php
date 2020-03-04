@@ -165,7 +165,6 @@ final class Container
                     ),
                     $container->getTestFileDataAdder(),
                     $container->getCoveredFileNameFilter(),
-
                     $container->getConfiguration()->getSourceFiles()
                 );
             },
