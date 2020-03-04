@@ -48,6 +48,7 @@ class SourceFileCollector
     /**
      * @param string[] $sourceDirectories
      * @param string[] $excludeDirectories
+     * @param string[] $filter
      *
      * @return iterable<SplFileInfo>
      */
@@ -66,7 +67,7 @@ class SourceFileCollector
             ->files()
         ;
 
-        if ($filter === '') {
+        if ($filter === []) {
             $finder->name('*.php');
         } else {
             $finder->filterFiles($filter);

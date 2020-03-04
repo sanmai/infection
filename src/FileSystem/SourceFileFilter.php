@@ -47,6 +47,7 @@ final class SourceFileFilter
 {
     private $sourceDirectories;
     private $excludeDirectories;
+    /** @var string[] */
     private $filterArray;
 
     /**
@@ -68,7 +69,11 @@ final class SourceFileFilter
             ->toArray();
     }
 
-    /** @see SourceFileCollector */
+    /**
+     * @return string[]
+     *
+     * @see SourceFileCollector
+     */
     public function getFilterArray(): array
     {
         return $this->filterArray;

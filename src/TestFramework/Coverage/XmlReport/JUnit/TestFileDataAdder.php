@@ -47,24 +47,27 @@ use Infection\TestFramework\Coverage\CoveredFileData;
  */
 final class TestFileDataAdder
 {
-    /** @var ?TestFileDataProvider */
     private $testFileDataProvider;
+
+    private $adapter;
 
     public function __construct(
         TestFrameworkAdapter $adapter,
         TestFileDataProvider $testFileDataProvider
     ) {
-        if ($adapter->hasJUnitReport()) {
-            $this->testFileDataProvider = $testFileDataProvider;
-        }
+        $this->adapter = $adapter;
+
+        $this->testFileDataProvider = $testFileDataProvider;
     }
 
     /**
+     * @param iterable<CoveredFileData> $coverage
+     *
      * @return iterable<CoveredFileData>
      */
     public function addTestExecutionInfo(iterable $coverage): iterable
     {
-        if ($this->testFileDataProvider === null) {
+        if (!$this->adapter->hasJUnitReport()) {
             return $coverage;
         }
 
@@ -73,6 +76,8 @@ final class TestFileDataAdder
 
     /**
      * @param iterable<CoveredFileData> $coverage
+     *
+     * @return iterable<CoveredFileData>
      */
     private function testExecutionInfoAdder(iterable $coverage): iterable
     {

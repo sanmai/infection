@@ -92,6 +92,7 @@ final class XmlCoverageParser
         return new CoveredFileData($sourceFileInfo, $this->getCoverageFileData($xPath));
     }
 
+    /** @return iterable<CoverageFileData> */
     private function getCoverageFileData(SafeDOMXPath $xPath): iterable
     {
         $linesNode = $xPath->query('/phpunit/file/totals/lines')[0];

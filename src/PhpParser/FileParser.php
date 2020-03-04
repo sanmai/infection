@@ -37,6 +37,7 @@ namespace Infection\PhpParser;
 
 use PhpParser\Node;
 use PhpParser\Parser;
+use function Safe\file_get_contents;
 use Throwable;
 
 /**

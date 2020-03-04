@@ -102,7 +102,7 @@ class IndexXmlCoverageParser
     {
         $pipeline = take($this->parseLazy($coverageXmlContent))
             ->map(static function (CoveredFileData $data) {
-                yield $data->sourceFilePath => $data->coverageFileData;
+                yield $data->getSplFileInfo()->getRealPath() => $data->getCoverageFileData();
             });
 
         return iterator_to_array($pipeline, true);

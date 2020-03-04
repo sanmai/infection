@@ -37,7 +37,9 @@ namespace Infection\TestFramework\Coverage;
 
 use Infection\Mutation\MutationGenerator;
 use Infection\TestFramework\Coverage\XmlReport\JUnit\TestFileDataAdder;
+use Infection\TestFramework\Coverage\XmlReport\PhpUnitXmlCoverageFactory;
 use Symfony\Component\Finder\SplFileInfo;
+use Webmozart\Assert\Assert;
 
 /**
  * Assembles a ready feed of CoveredFileData from different sources. Feeds data into MutationGenerator. Does not known about differences between adapters and what not.
@@ -50,7 +52,7 @@ use Symfony\Component\Finder\SplFileInfo;
 final class CoveredFileDataFactory implements CoveredFileDataProvider
 {
     /** @var CoveredFileDataProvider|PhpUnitXmlCoverageFactory */
-    private $primaryCoverage;
+    private $primaryCoverageProvider;
 
     /** @var iterable<SplFileInfo> */
     private $sourceFiles;
@@ -102,7 +104,7 @@ final class CoveredFileDataFactory implements CoveredFileDataProvider
     {
         $seenFiles = [];
 
-        /** @var $data CoveredFileData */
+        /** @var CoveredFileData $data */
         foreach ($coverage as $data) {
             $seenFiles[$data->getSplFileInfo()->getRealPath()] = true;
 
@@ -113,6 +115,8 @@ final class CoveredFileDataFactory implements CoveredFileDataProvider
 
         foreach ($this->sourceFiles as $splFileInfo) {
             $sourceFilePath = $splFileInfo->getRealPath();
+
+            Assert::string($sourceFilePath);
 
             if (array_key_exists($sourceFilePath, $seenFiles)) {
                 continue;

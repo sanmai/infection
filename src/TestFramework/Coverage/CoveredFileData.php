@@ -60,8 +60,12 @@ final class CoveredFileData implements LineCodeCoverage
     /** @var iterable<CoverageFileData> */
     private $lazyCoverageFileData;
 
+    /** @var ?XMLLineCodeCoverage */
     private $lineCodeCoverage;
 
+    /**
+     * @param iterable<CoverageFileData> $lazyCoverageFileData
+     */
     public function __construct(SplFileInfo $sourceFile, iterable $lazyCoverageFileData)
     {
         $this->sourceFile = $sourceFile;
@@ -100,12 +104,12 @@ final class CoveredFileData implements LineCodeCoverage
 
     public function getAllTestsForMutation(NodeLineRangeData $lineRange, bool $isOnFunctionSignature): iterable
     {
-        return $this->lineCodeCoverage->getAllTestsForMutation($lineRange, $isOnFunctionSignature);
+        return $this->getXMLLineCodeCoverage()->getAllTestsForMutation($lineRange, $isOnFunctionSignature);
     }
 
     public function hasTests(): bool
     {
-        return $this->lineCodeCoverage->hasTests();
+        return $this->getXMLLineCodeCoverage()->hasTests();
     }
 
     private function getXMLLineCodeCoverage(): XMLLineCodeCoverage

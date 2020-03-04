@@ -36,7 +36,6 @@ declare(strict_types=1);
 namespace Infection\TestFramework\Coverage\XmlReport;
 
 use Infection\AbstractTestFramework\TestFrameworkAdapter;
-use Infection\TestFramework\Coverage\CoveredFileData;
 use Infection\TestFramework\Coverage\CoveredFileDataProvider;
 use Infection\TestFramework\PhpUnit\Coverage\IndexXmlCoverageParser;
 use Infection\TestFramework\TestFrameworkTypes;
@@ -60,9 +59,6 @@ final class XMLLineCodeCoverageFactory
         $this->coverageXmlParser = $coverageXmlParser;
     }
 
-    /**
-     * @return iterable<CoveredFileData>
-     */
     public function create(
         string $testFrameworkKey,
         TestFrameworkAdapter $adapter
@@ -72,7 +68,7 @@ final class XMLLineCodeCoverageFactory
         return new PhpUnitXmlCoverageFactory(
             $this->coverageDir,
             $this->coverageXmlParser,
-            $testFrameworkKey,
+            $testFrameworkKey
         );
     }
 }
