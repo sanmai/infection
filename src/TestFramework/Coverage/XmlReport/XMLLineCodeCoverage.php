@@ -36,14 +36,12 @@ declare(strict_types=1);
 namespace Infection\TestFramework\Coverage\XmlReport;
 
 use function array_key_exists;
-use function count;
 use Infection\AbstractTestFramework\Coverage\CoverageLineData;
 use Infection\TestFramework\Coverage\CoverageDoesNotExistException;
 use Infection\TestFramework\Coverage\CoverageFileData;
 use Infection\TestFramework\Coverage\CoveredFileData;
 use Infection\TestFramework\Coverage\LineCodeCoverage;
 use Infection\TestFramework\Coverage\NodeLineRangeData;
-use function range;
 
 /**
  * Used by CoveredFileData to implement LineCodeCoverage methods.
@@ -66,14 +64,13 @@ final class XMLLineCodeCoverage implements LineCodeCoverage
 
     public function hasTests(): bool
     {
-        $coveredLineTestMethods = array_filter(
-            $this->fileCoverage->byLine,
-            static function (array $testMethods) {
-                return count($testMethods) > 0;
+        foreach ($this->fileCoverage->byLine as $testMethods) {
+            if ($testMethods !== []) {
+                return true;
             }
-        );
+        }
 
-        return count($coveredLineTestMethods) > 0;
+        return false;
     }
 
     public function getAllTestsForMutation(
@@ -107,32 +104,31 @@ final class XMLLineCodeCoverage implements LineCodeCoverage
     private function getTestsForLineRange(NodeLineRangeData $lineRange): iterable
     {
         foreach ($lineRange->range as $line) {
-            yield from $this->fileCoverage->byLine[$line] ?? [];
+            if (array_key_exists($line, $this->fileCoverage->byLine)) {
+                yield from $this->fileCoverage->byLine[$line];
+            }
         }
     }
 
     /**
      * @throws CoverageDoesNotExistException
      *
-     * @return CoverageLineData[]
+     * @return iterable<CoverageLineData>
      */
     private function getTestsForExecutedMethodOnLine(int $line): iterable
     {
-        foreach ($this->fileCoverage->byMethod as $method => $coverageMethodData) {
-            if ($line >= $coverageMethodData->startLine && $line <= $coverageMethodData->endLine) {
-                /** @var int[] $allLines */
-                $allLines = range($coverageMethodData->startLine, $coverageMethodData->endLine);
-
-                foreach ($allLines as $lineInExecutedMethod) {
-                    if (array_key_exists($lineInExecutedMethod, $this->fileCoverage->byLine)) {
-                        foreach ($this->fileCoverage->byLine[$lineInExecutedMethod] as $coverageLineData) {
-                            yield $coverageLineData;
-                        }
-                    }
-                }
-
-                break;
+        foreach ($this->fileCoverage->byMethod as $coverageMethodData) {
+            if (
+                $line >= $coverageMethodData->startLine
+                && $line <= $coverageMethodData->endLine
+            ) {
+                return $this->getTestsForLineRange(new NodeLineRangeData(
+                    $coverageMethodData->startLine,
+                    $coverageMethodData->endLine
+                ));
             }
         }
+
+        return [];
     }
 }
