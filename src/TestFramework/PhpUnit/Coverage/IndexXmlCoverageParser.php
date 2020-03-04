@@ -73,39 +73,22 @@ class IndexXmlCoverageParser
 
         self::assertHasCoverage($xPath);
 
-        $nodes = $xPath->query('//file');
-
-        $projectSource = self::getProjectSource($xPath);
-
-        foreach ($nodes as $node) {
-            $relativeCoverageFilePath = $node->getAttribute('href');
-
-            $parser = new XmlCoverageParser($this->coverageDir, $relativeCoverageFilePath, $projectSource);
-
-            yield $parser->parse();
-        }
+        return $this->parseNodes($xPath);
     }
 
     /**
-     * Parses the given PHPUnit XML coverage index report (index.xml) to collect the general
-     * coverage data. Note that this data is likely incomplete an will need to be enriched to
-     * contain all the desired data.
-     *
-     * @throws NoLineExecuted
-     * @throws CoverageDoesNotExistException
-     *
      * @deprecated in favor of parseLazy
      *
      * @return array<string, CoverageFileData>
      */
     public function parse(string $coverageXmlContent): array
     {
-        $pipeline = take($this->parseLazy($coverageXmlContent))
+        $coverage = take($this->parseLazy($coverageXmlContent))
             ->map(static function (CoveredFileData $data) {
                 yield $data->getSplFileInfo()->getRealPath() => $data->getCoverageFileData();
             });
 
-        return iterator_to_array($pipeline, true);
+        return iterator_to_array($coverage, true);
     }
 
     public static function createXPath(string $coverageContent): SafeDOMXPath
@@ -116,6 +99,24 @@ class IndexXmlCoverageParser
         Assert::true($success);
 
         return new SafeDOMXPath($document);
+    }
+
+    /**
+     * @return iterable<CoveredFileData>
+     */
+    private function parseNodes(SafeDOMXPath $xPath): iterable
+    {
+        $projectSource = self::getProjectSource($xPath);
+
+        $nodes = $xPath->query('//file');
+
+        foreach ($nodes as $node) {
+            $relativeCoverageFilePath = $node->getAttribute('href');
+
+            $parser = new XmlCoverageParser($this->coverageDir, $relativeCoverageFilePath, $projectSource);
+
+            yield $parser->parse();
+        }
     }
 
     /**
