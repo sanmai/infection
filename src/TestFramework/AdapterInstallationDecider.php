@@ -33,31 +33,54 @@
 
 declare(strict_types=1);
 
-namespace Infection\Logger;
+namespace Infection\TestFramework;
 
-use Infection\Mutant\MetricsCalculator;
+use function array_key_exists;
+use function class_exists;
+use function Safe\sprintf;
+use Symfony\Component\Console\Helper\QuestionHelper;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\ConfirmationQuestion;
 
 /**
  * @internal
  */
-final class SummaryFileLogger implements LineMutationTestingResultsLogger
+final class AdapterInstallationDecider
 {
-    private $metricsCalculator;
+    private const ADAPTER_NAME_TO_CLASS_MAP = [
+        TestFrameworkTypes::CODECEPTION => 'Infection\TestFramework\Codeception\CodeceptionAdapter',
+        TestFrameworkTypes::PHPSPEC => 'Infection\TestFramework\PhpSpec\PhpSpecAdapter',
+    ];
 
-    public function __construct(MetricsCalculator $metricsCalculator)
+    private $questionHelper;
+
+    public function __construct(QuestionHelper $questionHelper)
     {
-        $this->metricsCalculator = $metricsCalculator;
+        $this->questionHelper = $questionHelper;
     }
 
-    public function getLogLines(): array
+    public function shouldBeInstalled(string $adapterName, InputInterface $input, OutputInterface $output): bool
     {
-        return [
-            'Total: ' . $this->metricsCalculator->getTotalMutantsCount(),
-            'Killed: ' . $this->metricsCalculator->getKilledCount(),
-            'Errored: ' . $this->metricsCalculator->getErrorCount(),
-            'Escaped: ' . $this->metricsCalculator->getEscapedCount(),
-            'Timed Out: ' . $this->metricsCalculator->getTimedOutCount(),
-            'Not Covered: ' . $this->metricsCalculator->getNotTestedCount(),
-        ];
+        if (!array_key_exists($adapterName, self::ADAPTER_NAME_TO_CLASS_MAP)
+            || class_exists(self::ADAPTER_NAME_TO_CLASS_MAP[$adapterName])) {
+            return false;
+        }
+
+        $output->writeln(['']);
+
+        $question = new ConfirmationQuestion(
+            sprintf(
+                <<<TEXT
+We noticed you are using a test framework supported by an external Infection plugin.
+Would you like to install <comment>%s</comment>? [<comment>yes</comment>]:
+TEXT
+                ,
+                AdapterInstaller::OFFICIAL_ADAPTERS_MAP[$adapterName]
+            ),
+            true
+        );
+
+        return $this->questionHelper->ask($input, $output, $question);
     }
 }
