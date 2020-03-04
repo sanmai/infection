@@ -89,7 +89,7 @@ class FileMutationGenerator
             return;
         }
 
-        $sourceFilePath = $fileData->getSplFileInfo()->getPath();
+        $sourceFilePath = $fileData->getSplFileInfo()->getPathname();
 
         $initialStatements = $this->parser->parse($fileData->getSplFileInfo());
 

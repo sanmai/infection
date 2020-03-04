@@ -133,6 +133,8 @@ class NodeMutationGenerator
 
         $mutationByMutatorIndex = 0;
 
+        Assert::fileExists($this->filePath);
+
         foreach ($mutator->mutate($node) as $mutatedNode) {
             yield new Mutation(
                 $this->filePath,
